@@ -37,8 +37,15 @@ android {
             signingConfig = signingConfigs.debug
         }
     }
+
+    packagingOptions {
+        exclude 'META-INF/versions/9/OSGI-INF/MANIFEST.MF'
+    }
 }
 
 flutter {
     source = "../.."
+}
+dependencies {
+    implementation 'com.android.identity:identity-jvm:202411.1'
 }

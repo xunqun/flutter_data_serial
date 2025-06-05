@@ -1,5 +1,7 @@
 package app.whiles.serial.flutter_data_serial.manager
 
+import kotlin.getValue
+
 class ServerManager {
 
     // singleton instance
@@ -12,6 +14,7 @@ class ServerManager {
     // For example, you might have methods to start a server, stop it, or handle incoming connections.
     fun startServer() {
         // Logic to start the server
+
     }
 
     fun stopServer() {

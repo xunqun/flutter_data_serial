@@ -23,9 +23,12 @@ class Channel {
       switch (call.method) {
         case 'scanResults':
           // Handle scan results
-          final List<Map<String, String>> results = call.arguments;
-          print("Scan Results: $results");
-          _scanResultsController.add(results);
+          final List<Object?> results = call.arguments;
+          final List<Map<String, String>> list = results
+              .whereType<Map>() // 过滤出 Map 类型
+              .map((e) => Map<String, String>.from(e as Map)) // 转换为 Map<String, String>
+              .toList();
+          _scanResultsController.add(list);
           break;
       }
     });

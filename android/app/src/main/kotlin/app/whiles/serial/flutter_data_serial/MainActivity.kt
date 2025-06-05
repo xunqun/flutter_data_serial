@@ -93,7 +93,7 @@ class MainActivity : FlutterActivity() {
                 }
 
                 ClientManager.instance.init(bluetoothManager)
-                ClientManager.instance.connectToServer(deviceId)
+                ClientManager.instance.connectAsClient(deviceId)
                 result.success(null)
             }
 
@@ -121,7 +121,7 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_ARGUMENT", "Device ID is required", null)
                         return@MethodCallHandler
                     }
-                    ClientManager.instance.disconnectFromServer()
+                    ClientManager.instance.disconnect()
                 }
                 result.success(null)
             }

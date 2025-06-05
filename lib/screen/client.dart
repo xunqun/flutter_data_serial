@@ -52,6 +52,7 @@ class _ClientScreenState extends State<ClientScreen> {
                   // Replace with your device list
                   return ListTile(
                     title: Text(devices[index]['name'] ?? 'Unknown Device'),
+                    subtitle: Text(devices[index]['type'] ?? ''),
                     onTap: () {
                       // Handle device selection
                       channel.connectAsClient(devices[index]['address'] ?? '');
