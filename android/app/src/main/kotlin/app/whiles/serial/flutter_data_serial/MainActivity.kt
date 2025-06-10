@@ -12,6 +12,7 @@ import android.os.Bundle
 import androidx.annotation.RequiresPermission
 import androidx.core.app.ActivityCompat
 import app.whiles.serial.flutter_data_serial.constant.ClientConnectState
+import app.whiles.serial.flutter_data_serial.constant.ServerConnectState
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -52,10 +53,12 @@ class MainActivity : FlutterActivity() {
                 // You can notify the user or update the UI here
                 sendScanResults(discoveredDevices)
                 ClientManager.get()._scanStateLive.postValue(false)
+                sendClientScanState(false)
             } else if (BluetoothAdapter.ACTION_DISCOVERY_STARTED == action) {
                 // Discovery has started
                 discoveredDevices.clear() // Clear previous scan results
                 ClientManager.get()._scanStateLive.postValue(true)
+                sendClientScanState(true)
             }
         }
     }
@@ -86,6 +89,22 @@ class MainActivity : FlutterActivity() {
                     }
                     ClientConnectState.IDLE -> {
                         sendClientConnectState(ClientConnectState.IDLE.name)
+                    }
+                }
+            }
+        }
+
+        ServerManager.instance.serverConnectStateLive.observe(this){
+            if (it != null) {
+                when (it) {
+                    ServerConnectState.CONNECTED -> {
+                        sendServerConnectState(ServerConnectState.CONNECTED.name)
+                    }
+                    ServerConnectState.STARTING -> {
+                        sendServerConnectState(ServerConnectState.STARTING.name)
+                    }
+                    ServerConnectState.STOP -> {
+                        sendServerConnectState(ServerConnectState.STOP.name)
                     }
                 }
             }
@@ -164,7 +183,21 @@ class MainActivity : FlutterActivity() {
 
                     return@MethodCallHandler
                 }
+
+                // Make the device discoverable for 300 seconds (5 minutes)
+                val requestCode = 1;
+                val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                }
+                startActivityForResult(discoverableIntent, requestCode)
+
                 ServerManager.instance.startServer()
+                result.success(null)
+            }
+
+            "serverStop" -> {
+                imServer = false
+                ServerManager.instance.stopServer()
                 result.success(null)
             }
 
@@ -222,5 +255,9 @@ class MainActivity : FlutterActivity() {
 
     fun sendClientScanState(state: Boolean) {
         methodChannel?.invokeMethod("clientScanState", state)
+    }
+
+    fun sendServerConnectState(state: String) {
+        methodChannel?.invokeMethod("serverConnectState", state)
     }
 }

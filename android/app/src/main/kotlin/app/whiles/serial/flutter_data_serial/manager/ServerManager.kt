@@ -3,6 +3,8 @@ package app.whiles.serial.flutter_data_serial.manager
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
+import androidx.lifecycle.MutableLiveData
+import app.whiles.serial.flutter_data_serial.constant.ServerConnectState
 import java.io.IOException
 import java.util.UUID
 import kotlin.getValue
@@ -25,14 +27,20 @@ class ServerManager {
     private val SERVICE_NAME = "FlutterDataSerialService"
     private val SERVICE_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB") // SPP UUID
 
+    private val _serverConnectStateLive: MutableLiveData<ServerConnectState> = MutableLiveData(ServerConnectState.STOP)
+    val serverConnectStateLive: MutableLiveData<ServerConnectState>
+        get() = _serverConnectStateLive
+
     // Add methods and properties for managing server connections here
     // For example, you might have methods to start a server, stop it, or handle incoming connections.
     fun startServer() {
         if (serverThread != null && serverThread!!.isAlive) return // 已啟動
         serverThread = Thread {
             try {
+                _serverConnectStateLive.postValue(ServerConnectState.STARTING)
                 serverSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(SERVICE_NAME, SERVICE_UUID)
                 clientSocket = serverSocket?.accept() // 阻塞等待 client 連線
+                _serverConnectStateLive.postValue(ServerConnectState.CONNECTED)
                 // 連線成功後監聽資料
                 clientSocket?.let { socket ->
                     val inputStream = socket.inputStream
@@ -56,6 +64,7 @@ class ServerManager {
             } catch (e: IOException) {
                 e.printStackTrace()
             } finally {
+                _serverConnectStateLive.postValue(ServerConnectState.STOP)
                 serverSocket?.close()
             }
         }
@@ -68,6 +77,7 @@ class ServerManager {
 
     fun stopServer() {
         // Logic to stop the server
+        _serverConnectStateLive.postValue(ServerConnectState.STOP)
         try {
             serverSocket?.close()
             clientSocket?.close()

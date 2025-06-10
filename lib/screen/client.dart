@@ -25,7 +25,7 @@ class _ClientScreenState extends State<ClientScreen> {
       });
     });
 
-    channel.connectStateStream.listen((connectState) {
+    channel.clientConnectStateStream.listen((connectState) {
       if (connectState == ClientConnectState.CONNECTED) {
         // Navigate to the connected client screen
         Navigator.push(context, MaterialPageRoute(builder: (context) => const ConnectedClientScreen()));
@@ -42,7 +42,9 @@ class _ClientScreenState extends State<ClientScreen> {
       appBar: AppBar(
         title: const Text('Client Screen'),
       ),
-      body: Center(
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
@@ -60,7 +62,7 @@ class _ClientScreenState extends State<ClientScreen> {
               },
               child: Text( isScanning ? 'stop' : 'Search for devices'),
             ),
-            Expanded(child: StreamBuilder<List<Map<String, String>>>(
+            Expanded(child: StreamBuilder<List<Map<String, String?>>>(
               stream: channel.scanResultsStream,
               initialData: [],
               builder: (context, snapshot) {

@@ -15,14 +15,17 @@ class Channel {
   }
 
   static const platform = MethodChannel('channel.whiles.app/bluetooth');
-  StreamController<List<Map<String, String>>> _scanResultsController = StreamController<List<Map<String, String>>>.broadcast();
-  Stream<List<Map<String, String>>> get scanResultsStream => _scanResultsController.stream;
+  StreamController<List<Map<String, String?>>> _scanResultsController = StreamController<List<Map<String, String?>>>.broadcast();
+  Stream<List<Map<String, String?>>> get scanResultsStream => _scanResultsController.stream;
 
   StreamController<bool> _scanStateController = StreamController<bool>.broadcast();
   Stream<bool> get scanStateStream => _scanStateController.stream;
 
-  StreamController<ClientConnectState> _connectStateController = StreamController<ClientConnectState>.broadcast();
-  Stream<ClientConnectState> get connectStateStream => _connectStateController.stream;
+  StreamController<ClientConnectState> _clientConnectStateController = StreamController<ClientConnectState>.broadcast();
+  Stream<ClientConnectState> get clientConnectStateStream => _clientConnectStateController.stream;
+
+  StreamController<ServerConnectState> _serverConnectStateController = StreamController<ServerConnectState>.broadcast();
+  Stream<ServerConnectState> get serverConnectStateStream => _serverConnectStateController.stream;
 
   _internal(){
     platform.setMethodCallHandler((call) async {
@@ -30,9 +33,9 @@ class Channel {
         case 'scanResults':
           // Handle scan results
           final List<Object?> results = call.arguments;
-          final List<Map<String, String>> list = results
+          final List<Map<String, String?>> list = results
               .whereType<Map>() // 过滤出 Map 类型
-              .map((e) => Map<String, String>.from(e as Map)) // 转换为 Map<String, String>
+              .map((e) => Map<String, String?>.from(e as Map)) // 转换为 Map<String, String>
               .toList();
           _scanResultsController.add(list);
           break;
@@ -44,7 +47,12 @@ class Channel {
         case 'clientConnectState':
           // Handle connection state changes
           final String connectState = call.arguments;
-          _scanResultsController.add(ClientConnectState.findByName(connectState));
+          _clientConnectStateController.add(ClientConnectState.findByName(connectState));
+          break;
+        case 'serverConnectState':
+          // Handle server connection state changes
+          final String serverConnectState = call.arguments;
+          _serverConnectStateController.add(ServerConnectState.findByName(serverConnectState));
           break;
       }
     });
@@ -82,7 +90,15 @@ class Channel {
     }
   }
 
-  Future<void> disconnect(String deviceId) async {
+  Future<void> serverStop() async {
+    try {
+      await platform.invokeMethod('serverStop');
+    } on PlatformException catch (e) {
+      print("Failed to disconnect server: '${e.message}'.");
+    }
+  }
+
+  Future<void> clientDisconnect(String deviceId) async {
     try {
       await platform.invokeMethod('disconnect', {'deviceId': deviceId});
     } on PlatformException catch (e) {

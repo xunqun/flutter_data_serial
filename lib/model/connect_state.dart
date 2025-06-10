@@ -12,7 +12,7 @@ enum ClientConnectState {
 }
 
 enum ServerConnectState {
-  STARTING, STARTED, STOP;
+  STARTING, CONNECTED, STOP;
 
   static findByName(String name) {
     return ServerConnectState.values.firstWhere(

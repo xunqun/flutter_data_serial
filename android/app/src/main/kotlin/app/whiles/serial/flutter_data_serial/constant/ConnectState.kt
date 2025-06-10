@@ -1,7 +1,7 @@
 package app.whiles.serial.flutter_data_serial.constant
 
 enum class ServerConnectState {
-    STARTING, STARTED, STOP
+    STARTING, CONNECTED, STOP
 }
 
 enum class ClientConnectState {
