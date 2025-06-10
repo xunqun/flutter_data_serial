@@ -1,22 +1,28 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:flutter_data_serial/model/connect_state.dart';
 
 class Channel {
   // Singleton pattern to ensure only one instance of Channel exists
   static Channel? _instance;
-  static get() {
+  static Channel get() {
     if (_instance == null) {
       _instance = Channel();
       _instance!._internal();
     }
-    return _instance;
+    return _instance!;
   }
 
   static const platform = MethodChannel('channel.whiles.app/bluetooth');
   StreamController<List<Map<String, String>>> _scanResultsController = StreamController<List<Map<String, String>>>.broadcast();
   Stream<List<Map<String, String>>> get scanResultsStream => _scanResultsController.stream;
 
+  StreamController<bool> _scanStateController = StreamController<bool>.broadcast();
+  Stream<bool> get scanStateStream => _scanStateController.stream;
+
+  StreamController<ClientConnectState> _connectStateController = StreamController<ClientConnectState>.broadcast();
+  Stream<ClientConnectState> get connectStateStream => _connectStateController.stream;
 
   _internal(){
     platform.setMethodCallHandler((call) async {
@@ -29,6 +35,16 @@ class Channel {
               .map((e) => Map<String, String>.from(e as Map)) // 转换为 Map<String, String>
               .toList();
           _scanResultsController.add(list);
+          break;
+        case 'clientScanState':
+          // Handle scan state changes
+          final bool isScanning = call.arguments;
+          _scanStateController.add(isScanning);
+          break;
+        case 'clientConnectState':
+          // Handle connection state changes
+          final String connectState = call.arguments;
+          _scanResultsController.add(ClientConnectState.findByName(connectState));
           break;
       }
     });

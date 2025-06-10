@@ -4,7 +4,9 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import android.util.Log
-import androidx.annotation.RequiresPermission
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import app.whiles.serial.flutter_data_serial.constant.ClientConnectState
 import app.whiles.serial.flutter_data_serial.constant.Constants
 import java.io.IOException
 import java.util.UUID
@@ -13,12 +15,35 @@ class ClientManager {
     // singleton instance
     companion object {
         @JvmStatic
-        val instance: ClientManager by lazy { ClientManager() }
+        var instance: ClientManager? = null
+
+        @JvmStatic
+        fun get(): ClientManager {
+            if(instance == null) {
+                instance = ClientManager()
+            }
+            return instance!!
+        }
     }
 
+    private var connectedSocket: BluetoothSocket? = null
 
     var bluetoothManager: BluetoothManager? = null
     var bluetoothAdapter: android.bluetooth.BluetoothAdapter? = null
+
+    // LiveData to observe the connection state
+    var _connStateLive: MutableLiveData<ClientConnectState> = MutableLiveData()
+    val connStateLive: LiveData<ClientConnectState>
+        get() = _connStateLive
+
+    var _scanStateLive: MutableLiveData<Boolean> = MutableLiveData(false)
+    val scanStateLive: LiveData<Boolean>
+        get() = _scanStateLive
+
+    var _scanResultsLive: MutableLiveData<List<HashMap<String, String>>> = MutableLiveData()
+    val scanResultsLive: LiveData<List<HashMap<String, String>>>
+        get() = _scanResultsLive
+    val  discoveredDevices : MutableList<HashMap<String, String>> = mutableListOf()
 
     fun init(bluetoothManager: BluetoothManager) {
         this.bluetoothManager = bluetoothManager
@@ -44,6 +69,14 @@ class ClientManager {
 
     fun disconnect() {
         // Logic to disconnect from the server
+        _connStateLive.postValue(ClientConnectState.IDLE)
+        // 關閉 socket 並清理資源
+        try {
+            connectedSocket?.close()
+            connectedSocket = null
+        } catch (e: IOException) {
+            Log.e("ClientManager", "Error closing socket", e)
+        }
         Log.d("ClientManager", "Disconnected from server")
     }
 
@@ -59,7 +92,31 @@ class ClientManager {
     fun manageMyConnectedSocket(socket: BluetoothSocket) {
         // This method should handle the connected socket, e.g., start a thread to manage communication
         Log.d("ClientManager", "Connected to socket: ${socket.remoteDevice.address}")
-        // You can implement your communication logic here
+        _connStateLive.postValue(ClientConnectState.CONNECTED)
+        connectedSocket = socket
+        Thread {
+            try {
+                val inputStream = socket.inputStream
+                val buffer = ByteArray(1024)
+                var bytes: Int
+                while (socket.isConnected) {
+                    bytes = inputStream.read(buffer)
+                    if (bytes > 0) {
+                        handleReceivedBytes(buffer, bytes)
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e("ClientManager", "Error reading from server", e)
+            } finally {
+                _connStateLive.postValue(ClientConnectState.IDLE)
+            }
+        }.start()
+    }
+
+    private fun handleReceivedBytes(data: ByteArray, length: Int) {
+        // 處理收到的 ByteArray 資料
+        Log.d("ClientManager", "Received bytes from server: ${data.copyOf(length).joinToString(",")}")
+        // 你可以在這裡進行自訂的資料處理
     }
 
     inner class ConnectThread(val device: BluetoothDevice) : Thread() {
@@ -69,12 +126,12 @@ class ClientManager {
         public override fun run() {
             // Cancel discovery because it otherwise slows down the connection.
             bluetoothAdapter?.cancelDiscovery()
+            _connStateLive.postValue(ClientConnectState.CONNECTING)
             var mmSocket: BluetoothSocket = device.createRfcommSocketToServiceRecord(MY_UUID)
             mmSocket.let { socket: BluetoothSocket ->
                 // Connect to the remote device through the socket. This call blocks
                 // until it succeeds or throws an exception.
                 socket.connect()
-
                 // The connection attempt succeeded. Perform work associated with
                 // the connection in a separate thread.
                 manageMyConnectedSocket(socket)

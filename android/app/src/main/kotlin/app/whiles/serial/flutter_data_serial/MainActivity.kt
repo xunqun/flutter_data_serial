@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.annotation.RequiresPermission
 import androidx.core.app.ActivityCompat
+import app.whiles.serial.flutter_data_serial.constant.ClientConnectState
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -46,9 +47,19 @@ class MainActivity : FlutterActivity() {
                 )
                 discoveredDevices.add(map);
                 sendScanResults(discoveredDevices)
+            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED == action) {
+                // Discovery has finished
+                // You can notify the user or update the UI here
+                sendScanResults(discoveredDevices)
+                ClientManager.get()._scanStateLive.postValue(false)
+            } else if (BluetoothAdapter.ACTION_DISCOVERY_STARTED == action) {
+                // Discovery has started
+                discoveredDevices.clear() // Clear previous scan results
+                ClientManager.get()._scanStateLive.postValue(true)
             }
         }
     }
+
     override fun onStart() {
         super.onStart()
         bluetoothManager =
@@ -56,9 +67,41 @@ class MainActivity : FlutterActivity() {
         bluetoothAdapter = bluetoothManager.adapter
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
+            // Bluetooth is not supported or not enabled
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            startActivityForResult(enableBtIntent, 1)
+        }
+
+        ClientManager.get().connStateLive.observe(this) {
+            if (it != null) {
+                when (it) {
+                    ClientConnectState.CONNECTED -> {
+                        sendClientConnectState(ClientConnectState.CONNECTED.name)
+                    }
+                    ClientConnectState.CONNECTING -> {
+                        sendClientConnectState(ClientConnectState.CONNECTING.name)
+                    }
+                    ClientConnectState.IDLE -> {
+                        sendClientConnectState(ClientConnectState.IDLE.name)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        ClientManager.get().connStateLive.removeObservers(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         registerReceiver(receiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
+        registerReceiver(receiver, IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED))
+        registerReceiver(receiver, IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED))
     }
     private val methodCallHandler = MethodCallHandler { call, result ->
         when (call.method) {
@@ -92,8 +135,8 @@ class MainActivity : FlutterActivity() {
                     return@MethodCallHandler
                 }
 
-                ClientManager.instance.init(bluetoothManager)
-                ClientManager.instance.connectAsClient(deviceId)
+                ClientManager.get().init(bluetoothManager)
+                ClientManager.get().connectAsClient(deviceId)
                 result.success(null)
             }
 
@@ -109,6 +152,7 @@ class MainActivity : FlutterActivity() {
 
                     return@MethodCallHandler
                 }
+                ServerManager.instance.startServer()
                 result.success(null)
             }
 
@@ -121,7 +165,7 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_ARGUMENT", "Device ID is required", null)
                         return@MethodCallHandler
                     }
-                    ClientManager.instance.disconnect()
+                    ClientManager.get().disconnect()
                 }
                 result.success(null)
             }
@@ -158,5 +202,13 @@ class MainActivity : FlutterActivity() {
     fun sendScanResults(list: List<Map<String, String>>) {
         methodChannel?.invokeMethod("scanResults", list)
 
+    }
+
+    fun sendClientConnectState(state: String) {
+        methodChannel?.invokeMethod("clientConnectState", state)
+    }
+
+    fun sendClientScanState(state: Boolean) {
+        methodChannel?.invokeMethod("clientScanState", state)
     }
 }
