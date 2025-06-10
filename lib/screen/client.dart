@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../model/connect_state.dart';
 import '../platform/channel.dart';
+import 'connected_client.dart';
 
 class ClientScreen extends StatefulWidget {
   const ClientScreen({super.key});
@@ -11,11 +13,27 @@ class ClientScreen extends StatefulWidget {
 
 class _ClientScreenState extends State<ClientScreen> {
   late Channel channel;
+  bool isScanning = false;
 
   @override
   void initState() {
     super.initState();
     channel = Channel.get();
+    channel.scanStateStream.listen((scanning) {
+      setState(() {
+        isScanning = scanning;
+      });
+    });
+
+    channel.connectStateStream.listen((connectState) {
+      if (connectState == ClientConnectState.CONNECTED) {
+        // Navigate to the connected client screen
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const ConnectedClientScreen()));
+
+      } else {
+
+      }
+    });
   }
 
   @override
@@ -34,9 +52,13 @@ class _ClientScreenState extends State<ClientScreen> {
             ElevatedButton(
               onPressed: () {
                 // Add your client-specific functionality here
-                channel.scan();
+                if(isScanning) {
+                  channel.stopScan();
+                } else {
+                  channel.scan();
+                }
               },
-              child: const Text('Search for devices'),
+              child: Text( isScanning ? 'stop' : 'Search for devices'),
             ),
             Expanded(child: StreamBuilder<List<Map<String, String>>>(
               stream: channel.scanResultsStream,

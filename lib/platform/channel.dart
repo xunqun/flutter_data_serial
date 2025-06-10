@@ -58,6 +58,14 @@ class Channel {
     }
   }
 
+  Future<void> stopScan() async {
+    try {
+      await platform.invokeMethod('stopScan');
+    } on PlatformException catch (e) {
+      print("Failed to stop scan: '${e.message}'.");
+    }
+  }
+
   Future<void> connectAsClient(String deviceId) async {
     try {
       await platform.invokeMethod('connectAsClient', {'deviceId': deviceId});

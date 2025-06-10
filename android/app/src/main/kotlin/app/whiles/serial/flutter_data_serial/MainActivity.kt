@@ -120,6 +120,18 @@ class MainActivity : FlutterActivity() {
                 sendScanResults(discoveredDevices)
 
             }
+            "stopScan" -> {
+                if (ActivityCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.BLUETOOTH_SCAN
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    bluetoothAdapter.cancelDiscovery()
+                    result.success(null)
+                } else {
+                    result.error("PERMISSION_DENIED", "Bluetooth scan permission denied", null)
+                }
+            }
 
             "connectAsClient" -> {
                 imServer = false
