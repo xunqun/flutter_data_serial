@@ -1,9 +1,11 @@
 package app.whiles.serial.flutter_data_serial.manager
 
+import android.Manifest
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import app.whiles.serial.flutter_data_serial.constant.ClientConnectState
@@ -45,6 +47,10 @@ class ClientManager {
         get() = _scanResultsLive
     val  discoveredDevices : MutableList<HashMap<String, String>> = mutableListOf()
 
+    var _receivedDataLive: MutableLiveData<String> = MutableLiveData()
+    val receivedDataLive: LiveData<String>
+        get() = _receivedDataLive
+
     fun init(bluetoothManager: BluetoothManager) {
         this.bluetoothManager = bluetoothManager
         this.bluetoothAdapter = bluetoothManager.adapter
@@ -80,9 +86,37 @@ class ClientManager {
         Log.d("ClientManager", "Disconnected from server")
     }
 
-    fun sendDataToServer(data: String) {
+    fun sendDataToServer(data: ByteArray) {
         // Logic to send data to the connected server
+        connectedSocket?.let { socket ->
+            try {
+                val outputStream = socket.outputStream
+                outputStream.write(data)
+                outputStream.flush()
+                Log.d("ClientManager", "Data sent to server: ${data.joinToString(",")}")
+            } catch (e: IOException) {
+                Log.e("ClientManager", "Error sending data to server", e)
+            }
+        } ?: run {
+            Log.e("ClientManager", "No connected socket to send data")
+        }
     }
+
+//    fun sendDataToServer(data: String) {
+//        // Logic to send data to the connected server
+//        connectedSocket?.let { socket ->
+//            try {
+//                val outputStream = socket.outputStream
+//                outputStream.write(data.toByteArray())
+//                outputStream.flush()
+//                Log.d("ClientManager", "Data sent to server: $data")
+//            } catch (e: IOException) {
+//                Log.e("ClientManager", "Error sending data to server", e)
+//            }
+//        } ?: run {
+//            Log.e("ClientManager", "No connected socket to send data")
+//        }
+//    }
 
     fun receiveDataFromServer(): String {
         // Logic to receive data from the server
@@ -117,24 +151,36 @@ class ClientManager {
         // 處理收到的 ByteArray 資料
         Log.d("ClientManager", "Received bytes from server: ${data.copyOf(length).joinToString(",")}")
         // 你可以在這裡進行自訂的資料處理
+        val receivedString = String(data, 0, length)
+        _receivedDataLive.postValue(receivedString)
     }
 
     inner class ConnectThread(val device: BluetoothDevice) : Thread() {
         private val MY_UUID: UUID = UUID.fromString(Constants.UUID)
         private var mmSocket: BluetoothSocket? = null
 
+
         public override fun run() {
             // Cancel discovery because it otherwise slows down the connection.
             bluetoothAdapter?.cancelDiscovery()
             _connStateLive.postValue(ClientConnectState.CONNECTING)
-            var mmSocket: BluetoothSocket = device.createRfcommSocketToServiceRecord(MY_UUID)
-            mmSocket.let { socket: BluetoothSocket ->
-                // Connect to the remote device through the socket. This call blocks
-                // until it succeeds or throws an exception.
-                socket.connect()
-                // The connection attempt succeeded. Perform work associated with
-                // the connection in a separate thread.
-                manageMyConnectedSocket(socket)
+
+            try {
+                mmSocket = device.createRfcommSocketToServiceRecord(MY_UUID)
+                    // Connect to the remote device through the socket. This call blocks
+                    // until it succeeds or throws an exception.
+                mmSocket!!.connect()
+                    // The connection attempt succeeded. Perform work associated with
+                    // the connection in a separate thread.
+                manageMyConnectedSocket(mmSocket!!)
+            } catch (e: IOException) {
+                Log.e("ClientManager", "Could not connect to device: "+device.address, e)
+                _connStateLive.postValue(ClientConnectState.IDLE)
+                try {
+                    mmSocket?.close()
+                } catch (closeException: IOException) {
+                    Log.e("ClientManager", "Could not close the client socket", closeException)
+                }
             }
         }
 

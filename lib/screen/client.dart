@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../model/connect_state.dart';
 import '../platform/channel.dart';
@@ -34,58 +35,67 @@ class _ClientScreenState extends State<ClientScreen> {
 
       }
     });
+    WakelockPlus.enable();
   }
 
+  @override
+  void dispose() {
+    WakelockPlus.disable();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Client Screen'),
       ),
-      body: SizedBox(
-        width: double.infinity,
-        height: double.infinity,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            const Text(
-              'This is the client screen.',
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Add your client-specific functionality here
-                if(isScanning) {
-                  channel.stopScan();
-                } else {
-                  channel.scan();
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SizedBox(
+          width: double.infinity,
+          height: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                'This is the client screen.',
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  // Add your client-specific functionality here
+                  if(isScanning) {
+                    channel.stopScan();
+                  } else {
+                    channel.scan();
+                  }
+                },
+                child: Text( isScanning ? 'stop' : 'Search for devices'),
+              ),
+              Expanded(child: StreamBuilder<List<Map<String, String?>>>(
+                stream: channel.scanResultsStream,
+                initialData: [],
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('No devices found'));
+                  }
+                  final devices = snapshot.data!;
+                  return ListView.builder(itemBuilder: (context, index) {
+                    // Replace with your device list
+                    return ListTile(
+                      title: Text(devices[index]['name'] ?? 'Unknown Device'),
+                      subtitle: Text(devices[index]['type'] ?? ''),
+                      onTap: () {
+                        // Handle device selection
+                        channel.connectAsClient(devices[index]['address'] ?? '');
+                      },
+                    );
+                  }, itemCount: devices.length,);
                 }
-              },
-              child: Text( isScanning ? 'stop' : 'Search for devices'),
-            ),
-            Expanded(child: StreamBuilder<List<Map<String, String?>>>(
-              stream: channel.scanResultsStream,
-              initialData: [],
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No devices found'));
-                }
-                final devices = snapshot.data!;
-                return ListView.builder(itemBuilder: (context, index) {
-                  // Replace with your device list
-                  return ListTile(
-                    title: Text(devices[index]['name'] ?? 'Unknown Device'),
-                    subtitle: Text(devices[index]['type'] ?? ''),
-                    onTap: () {
-                      // Handle device selection
-                      channel.connectAsClient(devices[index]['address'] ?? '');
-                    },
-                  );
-                }, itemCount: devices.length,);
-              }
-            )),
-          ],
+              )),
+            ],
+          ),
         ),
       ),
     );

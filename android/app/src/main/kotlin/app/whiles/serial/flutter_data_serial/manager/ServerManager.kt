@@ -13,8 +13,19 @@ class ServerManager {
 
     // singleton instance
     companion object {
+
+
         @JvmStatic
-        val instance: ServerManager by lazy { ServerManager() }
+        var instance: ServerManager? = null
+
+        @JvmStatic
+        fun get(): ServerManager {
+            if(instance == null) {
+                instance = ServerManager()
+            }
+            return instance!!
+        }
+
     }
 
     // Bluetooth 相關屬性
@@ -27,7 +38,13 @@ class ServerManager {
     private val SERVICE_NAME = "FlutterDataSerialService"
     private val SERVICE_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB") // SPP UUID
 
-    private val _serverConnectStateLive: MutableLiveData<ServerConnectState> = MutableLiveData(ServerConnectState.STOP)
+    // LiveData to observe the received data
+    private val _receivedDataLive: MutableLiveData<String> = MutableLiveData()
+    val receivedDataLive: MutableLiveData<String>
+        get() = _receivedDataLive
+
+
+    private val _serverConnectStateLive: MutableLiveData<ServerConnectState> = MutableLiveData(ServerConnectState.STOPPED)
     val serverConnectStateLive: MutableLiveData<ServerConnectState>
         get() = _serverConnectStateLive
 
@@ -53,6 +70,7 @@ class ServerManager {
                                 val received = String(buffer, 0, bytes)
                                 // 這裡可以呼叫 handleIncomingConnection(received)
                                 println("Received: $received")
+                                _receivedDataLive.postValue(received)
                             }
                             handleIncomingBytes(bytes)
                         } catch (e: IOException) {
@@ -64,7 +82,7 @@ class ServerManager {
             } catch (e: IOException) {
                 e.printStackTrace()
             } finally {
-                _serverConnectStateLive.postValue(ServerConnectState.STOP)
+                _serverConnectStateLive.postValue(ServerConnectState.STOPPED)
                 serverSocket?.close()
             }
         }
@@ -77,7 +95,7 @@ class ServerManager {
 
     fun stopServer() {
         // Logic to stop the server
-        _serverConnectStateLive.postValue(ServerConnectState.STOP)
+        _serverConnectStateLive.postValue(ServerConnectState.STOPPED)
         try {
             serverSocket?.close()
             clientSocket?.close()
@@ -101,8 +119,6 @@ class ServerManager {
             } catch (e: IOException) {
                 e.printStackTrace()
             }
-        } ?: run {
-            println("No client connected to send data.")
         }
     }
 }

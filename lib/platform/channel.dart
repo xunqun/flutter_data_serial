@@ -27,6 +27,13 @@ class Channel {
   StreamController<ServerConnectState> _serverConnectStateController = StreamController<ServerConnectState>.broadcast();
   Stream<ServerConnectState> get serverConnectStateStream => _serverConnectStateController.stream;
 
+  StreamController<String> _serverReceivedDataController = StreamController<String>.broadcast();
+  Stream<String> get serverReceivedDataStream => _serverReceivedDataController.stream;
+
+  StreamController<String> _clientReceivedDataController = StreamController<String>.broadcast();
+  Stream<String> get clientReceivedDataStream => _clientReceivedDataController.stream;
+
+
   _internal(){
     platform.setMethodCallHandler((call) async {
       switch (call.method) {
@@ -53,6 +60,18 @@ class Channel {
           // Handle server connection state changes
           final String serverConnectState = call.arguments;
           _serverConnectStateController.add(ServerConnectState.findByName(serverConnectState));
+          break;
+        case 'serverReceivedData':
+          // Handle received data from server
+          final String data = call.arguments;
+          print("Server received data: $data");
+          _serverReceivedDataController.add(data);
+          break;
+        case 'clientReceivedData':
+          // Handle received data from client
+          final String data = call.arguments;
+          print("Client received data: $data");
+          _clientReceivedDataController.add(data);
           break;
       }
     });
@@ -98,19 +117,27 @@ class Channel {
     }
   }
 
-  Future<void> clientDisconnect(String deviceId) async {
+  Future<void> clientDisconnect() async {
     try {
-      await platform.invokeMethod('disconnect', {'deviceId': deviceId});
+      await platform.invokeMethod('disconnect', null);
     } on PlatformException catch (e) {
       print("Failed to disconnect: '${e.message}'.");
     }
   }
 
-  Future<void> sendData(String deviceId, String data) async {
+  Future<void> sendData(List<int> data) async {
     try {
-      await platform.invokeMethod('sendData', {'deviceId': deviceId, 'data': data});
+      await platform.invokeMethod('sendData', {'data': data});
     } on PlatformException catch (e) {
       print("Failed to send data: '${e.message}'.");
     }
   }
+
+  // Future<void> sendData(String data) async {
+  //   try {
+  //     await platform.invokeMethod('sendData', {'data': data});
+  //   } on PlatformException catch (e) {
+  //     print("Failed to send data: '${e.message}'.");
+  //   }
+  // }
 }

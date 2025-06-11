@@ -25,7 +25,7 @@ class MainActivity : FlutterActivity() {
     private var methodChannel: MethodChannel? = null
     lateinit var bluetoothManager: BluetoothManager
     lateinit var bluetoothAdapter: BluetoothAdapter
-    val  discoveredDevices : MutableList<HashMap<String, String>> = mutableListOf()
+    private val  discoveredDevices : MutableList<HashMap<String, String>> = mutableListOf()
 
     private val receiver = object : android.content.BroadcastReceiver() {
         @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -70,6 +70,7 @@ class MainActivity : FlutterActivity() {
         bluetoothAdapter = bluetoothManager.adapter
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onResume() {
         super.onResume()
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
@@ -94,7 +95,9 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        ServerManager.instance.serverConnectStateLive.observe(this){
+        ServerM
+
+        ServerManager.get().serverConnectStateLive.observe(this){
             if (it != null) {
                 when (it) {
                     ServerConnectState.CONNECTED -> {
@@ -103,10 +106,22 @@ class MainActivity : FlutterActivity() {
                     ServerConnectState.STARTING -> {
                         sendServerConnectState(ServerConnectState.STARTING.name)
                     }
-                    ServerConnectState.STOP -> {
-                        sendServerConnectState(ServerConnectState.STOP.name)
+                    ServerConnectState.STOPPED -> {
+                        sendServerConnectState(ServerConnectState.STOPPED.name)
                     }
                 }
+            }
+        }
+
+        ClientManager.get().receivedDataLive.observe(this) { data ->
+            if (data != null) {
+                sendClientReceivedData(data)
+            }
+        }
+
+        ServerManager.get().receivedDataLive.observe(this) { data ->
+            if (data != null) {
+                sendServerReceivedData(data)
             }
         }
     }
@@ -201,28 +216,21 @@ class MainActivity : FlutterActivity() {
                 result.success(null)
             }
 
-            "disconnect" -> {
-                val deviceId = call.argument<String>("deviceId")
-                if(imServer){
-                    ServerManager.instance.stopServer()
-                } else {
-                    if (deviceId.isNullOrEmpty()) {
-                        result.error("INVALID_ARGUMENT", "Device ID is required", null)
-                        return@MethodCallHandler
-                    }
-                    ClientManager.get().disconnect()
-                }
+            "disconnect" -> { // Disconnect from the client
+                ClientManager.get().disconnect()
                 result.success(null)
             }
 
             "sendData" -> {
-                val data = call.argument<String>("data")
+                val data = call.argument<List<Int>>("data")
                 if (data != null) {
                     // Here you would handle sending the data
-                    result.success("Data sent: $data")
+                    result.success(null)
+                    ClientManager.get().sendDataToServer(data)
                 } else {
                     result.error("INVALID_ARGUMENT", "Data argument is required", null)
                 }
+
             }
 
             else -> {
@@ -259,5 +267,13 @@ class MainActivity : FlutterActivity() {
 
     fun sendServerConnectState(state: String) {
         methodChannel?.invokeMethod("serverConnectState", state)
+    }
+
+    fun sendServerReceivedData(data: String) {
+        methodChannel?.invokeMethod("serverReceivedData", data)
+    }
+
+    fun sendClientReceivedData(data: String) {
+        methodChannel?.invokeMethod("clientReceivedData", data)
     }
 }

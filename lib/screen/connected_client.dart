@@ -1,4 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+
+import '../model/connect_state.dart';
+import '../platform/channel.dart';
 
 class ConnectedClientScreen extends StatefulWidget {
   const ConnectedClientScreen({super.key});
@@ -8,8 +14,101 @@ class ConnectedClientScreen extends StatefulWidget {
 }
 
 class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
+  TextEditingController controller = TextEditingController();
+  StreamSubscription? connStateSub;
+
+  @override
+  void initState() {
+    WakelockPlus.enable();
+    // listen to connect state changes
+    connStateSub = Channel.get().clientConnectStateStream.listen((connectState) {
+      if (connectState == ClientConnectState.IDLE) {
+        // Navigate back to the client screen when disconnected
+        Navigator.pop(context);
+      }
+    });
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    connStateSub?.cancel();
+    Channel.get().clientDisconnect();
+    WakelockPlus.disable();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Connected Client'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              Navigator.pop(context); // Close the connected client screen
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 200,
+                      child: TextField(
+                        controller: controller,
+                        decoration: const InputDecoration(
+                          labelText: 'Enter data to send',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        // Handle sending data
+                        String dataToSend = controller.text;
+                        if (dataToSend.isNotEmpty) {
+                          // Here you would typically send the data to the connected client
+                          // For example, using a method from your Channel class
+                          Channel.get().sendData(dataToSend.codeUnits);
+                          print(
+                              'Sending data: $dataToSend'); // Placeholder for actual send logic
+                          controller
+                              .clear(); // Clear the input field after sending
+                        }
+                      },
+                      icon: Icon(Icons.send),
+                    )
+                  ],
+                ),
+                SizedBox(
+                  height: 60,
+                  width: double.infinity,
+                  child: StreamBuilder<String>(
+                      stream: Channel.get().clientReceivedDataStream,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          String data = snapshot.data!;
+                          return Text('Received data: $data',
+                              style: const TextStyle(fontSize: 20));
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        }
+                        return Text('');
+                      }),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
