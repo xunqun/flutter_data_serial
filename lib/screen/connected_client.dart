@@ -96,7 +96,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           String data = snapshot.data!;
-                          return Text('Received data: $data',
+                          return Text('$data',
                               style: const TextStyle(fontSize: 20));
                         } else if (snapshot.hasError) {
                           return Text('Error: ${snapshot.error}');

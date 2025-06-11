@@ -95,7 +95,7 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        ServerM
+
 
         ServerManager.get().serverConnectStateLive.observe(this){
             if (it != null) {
@@ -206,13 +206,13 @@ class MainActivity : FlutterActivity() {
                 }
                 startActivityForResult(discoverableIntent, requestCode)
 
-                ServerManager.instance.startServer()
+                ServerManager.get().startServer()
                 result.success(null)
             }
 
             "serverStop" -> {
                 imServer = false
-                ServerManager.instance.stopServer()
+                ServerManager.get().stopServer()
                 result.success(null)
             }
 
@@ -222,7 +222,7 @@ class MainActivity : FlutterActivity() {
             }
 
             "sendData" -> {
-                val data = call.argument<List<Int>>("data")
+                val data = call.argument<ByteArray>("data")
                 if (data != null) {
                     // Here you would handle sending the data
                     result.success(null)

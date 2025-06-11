@@ -127,7 +127,8 @@ class Channel {
 
   Future<void> sendData(List<int> data) async {
     try {
-      await platform.invokeMethod('sendData', {'data': data});
+      Uint8List uint8list = Uint8List.fromList(data);
+      await platform.invokeMethod('sendData', {'data': uint8list});
     } on PlatformException catch (e) {
       print("Failed to send data: '${e.message}'.");
     }

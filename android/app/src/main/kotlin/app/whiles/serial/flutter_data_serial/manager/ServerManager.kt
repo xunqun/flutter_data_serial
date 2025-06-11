@@ -71,8 +71,9 @@ class ServerManager {
                                 // 這裡可以呼叫 handleIncomingConnection(received)
                                 println("Received: $received")
                                 _receivedDataLive.postValue(received)
+                                handleIncomingBytes(received.toByteArray())
                             }
-                            handleIncomingBytes(bytes)
+
                         } catch (e: IOException) {
                             e.printStackTrace()
                             break
@@ -89,8 +90,9 @@ class ServerManager {
         serverThread?.start()
     }
 
-    private fun handleIncomingBytes(bytes: kotlin.Int) {
+    private fun handleIncomingBytes(bytes: ByteArray) {
 
+        sendData(bytes)
     }
 
     fun stopServer() {
