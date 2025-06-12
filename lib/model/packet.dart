@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-const int maxPacketSize = 512;
+const int maxPacketSize = 900;
 const int headerSize = 2 + 1 + 2 + 2 + 2; // AA55 + TYPE + INDEX + LENGTH + CRC16
 const List<int> headerBytes = [0xAA, 0x55];
 

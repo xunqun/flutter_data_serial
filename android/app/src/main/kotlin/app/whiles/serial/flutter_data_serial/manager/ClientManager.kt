@@ -93,7 +93,7 @@ class ClientManager {
                 val outputStream = socket.outputStream
                 outputStream.write(data)
                 outputStream.flush()
-                Log.d("ClientManager", "Data sent to server: ${data.joinToString(",")}")
+//                Log.d("ClientManager", "Data sent to server: ${data.joinToString(",")}")
             } catch (e: IOException) {
                 Log.e("ClientManager", "Error sending data to server", e)
             }
@@ -149,9 +149,9 @@ class ClientManager {
 
     private fun handleReceivedBytes(data: ByteArray, length: Int) {
         // 處理收到的 ByteArray 資料
-        Log.d("ClientManager", "Received bytes from server: ${data.copyOf(length).joinToString(",")}")
+//        Log.d("ClientManager", "Received bytes from server: ${data.copyOf(length).joinToString(",")}")
         // 你可以在這裡進行自訂的資料處理
-        val receivedString = String(data, 0, length)
+//        val receivedString = String(data, 0, length)
         _receivedDataLive.postValue(data)
     }
 

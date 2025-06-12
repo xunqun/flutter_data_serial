@@ -70,7 +70,7 @@ class Channel {
         case 'clientReceivedData':
           // Handle received data from client
           final Uint8List data = call.arguments;
-          print("Client received data: $data");
+          // print("Client received data: $data");
           _clientReceivedDataController.add(data);
           break;
       }
