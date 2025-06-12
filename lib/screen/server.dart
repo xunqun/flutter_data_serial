@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_data_serial/model/connect_state.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../platform/channel.dart';
+import '../util/packet_receiver.dart';
 
 class ServerScreen extends StatefulWidget {
   const ServerScreen({super.key});
@@ -12,10 +15,26 @@ class ServerScreen extends StatefulWidget {
 }
 
 class _ServerScreenState extends State<ServerScreen> {
+
+  PacketReceiver dataReceiver = PacketReceiver();
+  Image? image;
+
   @override
   void initState() {
     WakelockPlus.enable();
     super.initState();
+    dataReceiver.onComplete = (data) {
+      setState(() {
+        image = null; // Reset image before loading new one
+        image = Image.memory(data);
+      });
+
+    };
+    Channel.get().serverReceivedDataStream.listen((data){
+      dataReceiver.handleIncomingPacket(data, (index){
+        // Handle packet index if needed
+      });
+    });
   }
 
   @override
@@ -92,12 +111,13 @@ class _ServerScreenState extends State<ServerScreen> {
                   stream: Channel.get().serverReceivedDataStream,
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
-                      String? data = snapshot.data;
+                      Uint8List? data = snapshot.data;
+                      String dataString = String.fromCharCodes(data!).trim();
                       return SizedBox(
                         width: double.infinity,
                         height: 60,
                         child: Text(
-                          '$data',
+                          dataString,
                           style: const TextStyle(fontSize: 10),
                         ),
                       );
@@ -112,6 +132,12 @@ class _ServerScreenState extends State<ServerScreen> {
                       );
                     }
                   }),
+              if(image != null)
+                SizedBox(
+                  width: double.infinity,
+                  height: 300,
+                  child: image!,
+                ),
             ],
           ),
         ),

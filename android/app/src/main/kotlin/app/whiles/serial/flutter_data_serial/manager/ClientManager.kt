@@ -47,8 +47,8 @@ class ClientManager {
         get() = _scanResultsLive
     val  discoveredDevices : MutableList<HashMap<String, String>> = mutableListOf()
 
-    var _receivedDataLive: MutableLiveData<String> = MutableLiveData()
-    val receivedDataLive: LiveData<String>
+    var _receivedDataLive: MutableLiveData<ByteArray> = MutableLiveData()
+    val receivedDataLive: LiveData<ByteArray>
         get() = _receivedDataLive
 
     fun init(bluetoothManager: BluetoothManager) {
@@ -152,7 +152,7 @@ class ClientManager {
         Log.d("ClientManager", "Received bytes from server: ${data.copyOf(length).joinToString(",")}")
         // 你可以在這裡進行自訂的資料處理
         val receivedString = String(data, 0, length)
-        _receivedDataLive.postValue(receivedString)
+        _receivedDataLive.postValue(data)
     }
 
     inner class ConnectThread(val device: BluetoothDevice) : Thread() {

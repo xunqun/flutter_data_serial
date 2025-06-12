@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_data_serial/util/file_packet_helper.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../model/connect_state.dart';
@@ -16,6 +18,19 @@ class ConnectedClientScreen extends StatefulWidget {
 class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
   TextEditingController controller = TextEditingController();
   StreamSubscription? connStateSub;
+  int progress = 0;
+  List<String> imageList = [
+    'assets/image/1.jpg',
+    'assets/image/2.jpg',
+    'assets/image/3.jpg',
+    'assets/image/4.jpg',
+    'assets/image/5.jpg',
+    'assets/image/6.jpg',
+    'assets/image/7.jpg',
+    'assets/image/8.jpg',
+    'assets/image/9.jpg',
+    'assets/image/10.jpg',
+  ];
 
   @override
   void initState() {
@@ -91,12 +106,13 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                 SizedBox(
                   height: 60,
                   width: double.infinity,
-                  child: StreamBuilder<String>(
+                  child: StreamBuilder<Uint8List>(
                       stream: Channel.get().clientReceivedDataStream,
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
-                          String data = snapshot.data!;
-                          return Text('$data',
+                          Uint8List? data = snapshot.data;
+                          String dataString = String.fromCharCodes(data!).trim();
+                          return Text(dataString,
                               style: const TextStyle(fontSize: 20));
                         } else if (snapshot.hasError) {
                           return Text('Error: ${snapshot.error}');
@@ -104,6 +120,38 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                         return Text('');
                       }),
                 ),
+                // image button with asset image
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (var image in imageList)
+                        IconButton(
+                          onPressed: () {
+                            // Handle sending image
+                            FilePacketHelper.fromAsset(image).then((filePacketHelper) async {
+                              List<List<int>> packets = filePacketHelper.getPackets();
+                              int count = 0;
+                              for (var packet in packets) {
+                                Channel.get().sendData(packet);
+                                count++;
+                                setState(() {
+                                  progress = (count / packets.length * 100).toInt();
+                                });
+                                await Future.delayed(Duration(milliseconds: 50));
+                              }
+                            });
+                          },
+                          icon: Image.asset(
+                            image,
+                            width: 50,
+                            height: 50,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                CircularProgressIndicator(value: progress / 100)
               ],
             ),
           ),

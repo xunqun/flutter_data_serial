@@ -39,8 +39,8 @@ class ServerManager {
     private val SERVICE_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB") // SPP UUID
 
     // LiveData to observe the received data
-    private val _receivedDataLive: MutableLiveData<String> = MutableLiveData()
-    val receivedDataLive: MutableLiveData<String>
+    private val _receivedDataLive: MutableLiveData<ByteArray> = MutableLiveData()
+    val receivedDataLive: MutableLiveData<ByteArray>
         get() = _receivedDataLive
 
 
@@ -67,11 +67,9 @@ class ServerManager {
                         try {
                             bytes = inputStream.read(buffer)
                             if (bytes > 0) {
-                                val received = String(buffer, 0, bytes)
-                                // 這裡可以呼叫 handleIncomingConnection(received)
-                                println("Received: $received")
-                                _receivedDataLive.postValue(received)
-                                handleIncomingBytes(received.toByteArray())
+
+                                _receivedDataLive.postValue(buffer)
+                                handleIncomingBytes(buffer)
                             }
 
                         } catch (e: IOException) {

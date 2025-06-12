@@ -27,11 +27,11 @@ class Channel {
   StreamController<ServerConnectState> _serverConnectStateController = StreamController<ServerConnectState>.broadcast();
   Stream<ServerConnectState> get serverConnectStateStream => _serverConnectStateController.stream;
 
-  StreamController<String> _serverReceivedDataController = StreamController<String>.broadcast();
-  Stream<String> get serverReceivedDataStream => _serverReceivedDataController.stream;
+  StreamController<Uint8List> _serverReceivedDataController = StreamController<Uint8List>.broadcast();
+  Stream<Uint8List> get serverReceivedDataStream => _serverReceivedDataController.stream;
 
-  StreamController<String> _clientReceivedDataController = StreamController<String>.broadcast();
-  Stream<String> get clientReceivedDataStream => _clientReceivedDataController.stream;
+  StreamController<Uint8List> _clientReceivedDataController = StreamController<Uint8List>.broadcast();
+  Stream<Uint8List> get clientReceivedDataStream => _clientReceivedDataController.stream;
 
 
   _internal(){
@@ -63,13 +63,13 @@ class Channel {
           break;
         case 'serverReceivedData':
           // Handle received data from server
-          final String data = call.arguments;
-          print("Server received data: $data");
+          final Uint8List data = call.arguments;
+          // print("Server received data: $data");
           _serverReceivedDataController.add(data);
           break;
         case 'clientReceivedData':
           // Handle received data from client
-          final String data = call.arguments;
+          final Uint8List data = call.arguments;
           print("Client received data: $data");
           _clientReceivedDataController.add(data);
           break;

@@ -269,11 +269,11 @@ class MainActivity : FlutterActivity() {
         methodChannel?.invokeMethod("serverConnectState", state)
     }
 
-    fun sendServerReceivedData(data: String) {
+    fun sendServerReceivedData(data: ByteArray) {
         methodChannel?.invokeMethod("serverReceivedData", data)
     }
 
-    fun sendClientReceivedData(data: String) {
+    fun sendClientReceivedData(data: ByteArray) {
         methodChannel?.invokeMethod("clientReceivedData", data)
     }
 }
