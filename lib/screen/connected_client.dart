@@ -129,6 +129,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                         IconButton(
                           onPressed: () {
                             // Handle sending image
+                            var start = DateTime.now().millisecondsSinceEpoch;
                             PacketSender.fromAsset(image).then((filePacketHelper) async {
                               List<List<int>> packets = filePacketHelper.getPackets();
                               int count = 0;
@@ -138,8 +139,11 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                                 setState(() {
                                   progress = (count / packets.length * 100).toInt();
                                 });
-                                await Future.delayed(Duration(milliseconds: 50));
+                                await Future.delayed(Duration(milliseconds: 20));
                               }
+                              var delta = DateTime.now().millisecondsSinceEpoch - start;
+                              debugPrint(
+                                  '✅ Image sent: $image, total packets: ${packets.length}, time taken: ${delta}ms');
                             });
                           },
                           icon: Image.asset(

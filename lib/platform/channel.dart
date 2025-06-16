@@ -134,8 +134,13 @@ class Channel {
     }
   }
 
-  Future<void> serverSendResendPacket(int index) async{
-
+  Future<void> serverSendData(List<int> data) async {
+    try {
+      Uint8List uint8list = Uint8List.fromList(data);
+      await platform.invokeMethod('serverSendData', {'data': uint8list});
+    } on PlatformException catch (e) {
+      print("Failed to send data: '${e.message}'.");
+    }
   }
 
   // Future<void> sendData(String data) async {

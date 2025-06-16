@@ -233,6 +233,21 @@ class MainActivity : FlutterActivity() {
 
             }
 
+            "serverSendData" -> {
+                if (!imServer) {
+                    result.error("NOT_SERVER", "This method can only be called when connected as a server", null)
+                    return@MethodCallHandler
+                }
+                val data = call.argument<ByteArray>("data")
+                if (data != null) {
+                    // Here you would handle sending the data
+                    result.success(null)
+                    ServerManager.get().sendData(data)
+                } else {
+                    result.error("INVALID_ARGUMENT", "Data argument is required", null)
+                }
+            }
+
             else -> {
                 result.notImplemented()
             }
