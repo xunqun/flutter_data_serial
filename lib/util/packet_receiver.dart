@@ -8,7 +8,9 @@ class PacketReceiver {
 
   int? totalSize;
   int? totalChunks;
+  String postfix = '';
   final Map<int, List<int>> receivedChunks = {};
+  final List<List<int>> resentPackets = [];
   bool isEndReceived = false;
   void Function(Uint8List imageData)? onComplete;
 
@@ -34,6 +36,7 @@ class PacketReceiver {
     final crcInput = packet.sublist(2, dataEnd);
     if (_calculateChecksum16(Uint8List.fromList(crcInput)) != receivedChecksum) {
       print('❌ checksum error at index $index');
+      var resentPacket = buildResetPacket(index);
       sendResendRequest(index);
       return;
     }
@@ -43,6 +46,7 @@ class PacketReceiver {
       if (data.length >= 8) {
         totalSize = ByteData.sublistView(Uint8List.fromList(data), 0, 4).getUint32(0, Endian.big);
         totalChunks = ByteData.sublistView(Uint8List.fromList(data), 4, 8).getUint32(0, Endian.big);
+        postfix = String.fromCharCodes(data.sublist(8, 12));
         receivedChunks.clear();
         print('✅ START received: totalSize=$totalSize, chunks=$totalChunks');
       }
@@ -96,5 +100,23 @@ class PacketReceiver {
       sum += b;
     }
     return sum & 0xFFFF;
+  }
+
+  List<int> buildResetPacket(int index) {
+    final packet = <int>[
+      header[0], header[1], // Header
+      0x05, // Type: Resend Request
+      0x00, 0x00, // Index
+      0x00, 0x02, // Length: 2 bytes (for index)
+       // 2 bytes for index
+      (index >> 8) & 0xFF, index & 0xFF, // Index in big-endian
+      0x00, 0x00 // Checksum: will be calculated later
+    ];
+
+    final checksum = _calculateChecksum16(Uint8List.fromList(packet.sublist(2)));
+    packet.add((checksum >> 8) & 0xFF);
+    packet.add(checksum & 0xFF);
+
+    return Uint8List.fromList(packet);
   }
 }

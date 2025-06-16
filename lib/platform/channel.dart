@@ -134,6 +134,10 @@ class Channel {
     }
   }
 
+  Future<void> serverSendResendPacket(int index) async{
+
+  }
+
   // Future<void> sendData(String data) async {
   //   try {
   //     await platform.invokeMethod('sendData', {'data': data});

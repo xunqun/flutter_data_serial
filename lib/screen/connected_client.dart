@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_data_serial/util/file_packet_helper.dart';
+import 'package:flutter_data_serial/util/packet_sender.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../model/connect_state.dart';
@@ -129,7 +129,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                         IconButton(
                           onPressed: () {
                             // Handle sending image
-                            FilePacketHelper.fromAsset(image).then((filePacketHelper) async {
+                            PacketSender.fromAsset(image).then((filePacketHelper) async {
                               List<List<int>> packets = filePacketHelper.getPackets();
                               int count = 0;
                               for (var packet in packets) {

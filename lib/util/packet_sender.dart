@@ -4,28 +4,31 @@ import 'package:flutter/services.dart';
 
 import '../model/packet.dart';
 
-class FilePacketHelper {
+class PacketSender {
 
 
   final Uint8List fileBytes;
+  final String postfix;
   final List<List<int>> packets = [];
 
-  FilePacketHelper._(this.fileBytes);
+  PacketSender._(this.fileBytes, this.postfix);
 
   /// 建立實例並切分封包
-  static Future<FilePacketHelper> fromFile(File file) async {
+  static Future<PacketSender> fromFile(File file) async {
     final bytes = await file.readAsBytes();
-    final helper = FilePacketHelper._(bytes);
+    final postfix = file.path.split('.').last.toLowerCase();
+    final helper = PacketSender._(bytes, postfix);
     helper._buildPackets();
     return helper;
   }
 
   // final helper = await FilePacketHelper.fromAsset('assets/image/sample.jpg');
   // final packets = helper.getPackets();
-  static Future<FilePacketHelper> fromAsset(String assetPath) async {
+  static Future<PacketSender> fromAsset(String assetPath) async {
     final bytes = await rootBundle.load(assetPath);
+    final postfix = assetPath.split('.').last.toLowerCase();
     final data = bytes.buffer.asUint8List();
-    final helper = FilePacketHelper._(data);
+    final helper = PacketSender._(data, postfix);
     helper._buildPackets();
     return helper;
   }
@@ -33,11 +36,21 @@ class FilePacketHelper {
   void _buildPackets() {
     int totalSize = fileBytes.length;
     int totalChunks = (totalSize / maxPacketSize).ceil();
-
+    Uint8List postfixBytes = Uint8List.fromList(postfix.codeUnits);
     // 1. START Packet
-    final startPayload = ByteData(8)
+    final startPayload = ByteData(12)
       ..setUint32(0, totalSize, Endian.big)
       ..setUint32(4, totalChunks, Endian.big);
+
+    // postfix bytes are added to byte 8 to 11
+    for (int i = 0; i < postfixBytes.length; i++) {
+      startPayload.setUint8(8 + i, postfixBytes[i]);
+    }
+    // Fill remaining bytes with 0 if postfix is less than 4 bytes
+    for (int i = postfixBytes.length; i < 4; i++) {
+      startPayload.setUint8(8 + i, 0);
+    }
+
     packets.add(_buildPacket(PacketType.start, 0, startPayload.buffer.asUint8List()));
 
     // 2. DATA Packets

@@ -36,8 +36,16 @@
 ### START 封包格式（TYPE = 0x01）
 
 ```
-| HEADER | 0x01 | 0x0000 | 0x0008 | [TotalSize: 4 bytes] | CRC16 |
+| HEADER | 0x01 | 0x0000 | 0x0008 | [TotalSize: 12 bytes] | CRC16 |
 ```
+
+Data = [Total Size (4 bytes), Chunks Number (4 bytes), File postfix(4 bytes)]
+
+資料總長度: Uint32
+
+切份的chunk數: Uint32
+
+檔案副檔名: Uint32
 
 ### DATA 封包格式 (TYPE = 0x02)
 

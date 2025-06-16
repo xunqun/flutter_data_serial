@@ -32,7 +32,9 @@ class _ServerScreenState extends State<ServerScreen> {
     };
     Channel.get().serverReceivedDataStream.listen((data){
       dataReceiver.handleIncomingPacket(data, (index){
-        // Handle packet index if needed
+        // send RESENT packet to client
+        Channel.get().serverSendResendPacket(index);
+
       });
     });
   }
