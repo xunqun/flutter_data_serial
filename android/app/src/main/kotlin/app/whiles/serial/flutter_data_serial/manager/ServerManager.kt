@@ -61,10 +61,12 @@ class ServerManager {
                 // 連線成功後監聽資料
                 clientSocket?.let { socket ->
                     val inputStream = socket.inputStream
-                    val buffer = ByteArray(1024)
+                    var buffer = ByteArray(1024)
                     var bytes: Int
                     while (socket.isConnected) {
                         try {
+                            // clear the buffer before reading
+                            buffer = ByteArray(1024)
                             bytes = inputStream.read(buffer)
                             if (bytes > 0) {
 

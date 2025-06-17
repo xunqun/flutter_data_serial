@@ -36,6 +36,18 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
     'assets/image/9.jpg',
     'assets/image/10.jpg',
   ];
+  List<String> naviList = [
+    'assets/image/1_1.jpg',
+    'assets/image/1_2.jpg',
+    'assets/image/1_3.jpg',
+    'assets/image/1_4.jpg',
+    'assets/image/1_5.jpg',
+    'assets/image/1_6.jpg',
+    'assets/image/1_7.jpg',
+    'assets/image/1_8.jpg',
+    'assets/image/1_9.jpg',
+    'assets/image/1_10.jpg',
+  ];
 
   @override
   void initState() {
@@ -83,36 +95,36 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
             width: double.infinity,
             child: Column(
               children: [
-                Row(
-                  children: [
-                    SizedBox(
-                      width: 200,
-                      child: TextField(
-                        controller: controller,
-                        decoration: const InputDecoration(
-                          labelText: 'Enter data to send',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        // Handle sending data
-                        String dataToSend = controller.text;
-                        if (dataToSend.isNotEmpty) {
-                          // Here you would typically send the data to the connected client
-                          // For example, using a method from your Channel class
-                          Channel.get().sendData(dataToSend.codeUnits);
-                          print(
-                              'Sending data: $dataToSend'); // Placeholder for actual send logic
-                          controller
-                              .clear(); // Clear the input field after sending
-                        }
-                      },
-                      icon: Icon(Icons.send),
-                    )
-                  ],
-                ),
+                // Row(
+                //   children: [
+                //     SizedBox(
+                //       width: 200,
+                //       child: TextField(
+                //         controller: controller,
+                //         decoration: const InputDecoration(
+                //           labelText: 'Enter data to send',
+                //           border: OutlineInputBorder(),
+                //         ),
+                //       ),
+                //     ),
+                //     IconButton(
+                //       onPressed: () {
+                //         // Handle sending data
+                //         String dataToSend = controller.text;
+                //         if (dataToSend.isNotEmpty) {
+                //           // Here you would typically send the data to the connected client
+                //           // For example, using a method from your Channel class
+                //           Channel.get().sendData(dataToSend.codeUnits);
+                //           print(
+                //               'Sending data: $dataToSend'); // Placeholder for actual send logic
+                //           controller
+                //               .clear(); // Clear the input field after sending
+                //         }
+                //       },
+                //       icon: Icon(Icons.send),
+                //     )
+                //   ],
+                // ),
                 SizedBox(
                   height: 60,
                   width: double.infinity,
@@ -184,27 +196,67 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                     ],
                   ),
                 ),
-
-                IconButton( onPressed: busy ? null : () async {
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (var image in naviList)
+                        IconButton(
+                          onPressed: () {
+                            // Handle sending image
+                            setState(() {
+                              busy = true;
+                            });
+                            sendImagePacket(image);
+                            setState(() {
+                              busy = false;
+                            });
+                          },
+                          icon: Image.asset(
+                            image,
+                            width: 50,
+                            height: 50,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon( onPressed: busy ? null : () async {
                   // send all images
                   setState(() {
                     busy = true;
                   });
                   for (var image in imageList) {
                     await sendImagePacket(image);
-                    await Future.delayed(Duration(milliseconds: 700));
+                    // await Future.delayed(Duration(milliseconds: 1000));
                   }
                   setState(() {
                     busy = false;
                   });
-                }, icon: Icon(Icons.local_shipping_outlined)),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(value: progress / 100),
-                    const SizedBox(width: 16),
-                    Text('$imageDeltaTime ms'),
-                  ],
+                }, icon: Icon(Icons.numbers), label: Text('Send all images'),),
+                ElevatedButton.icon( onPressed: busy ? null : () async {
+                  // send all images
+                  setState(() {
+                    busy = true;
+                  });
+                  for (var image in naviList) {
+                    await sendImagePacket(image);
+                    // await Future.delayed(Duration(milliseconds: 1000));
+                  }
+                  setState(() {
+                    busy = false;
+                  });
+                }, icon: Icon(Icons.local_shipping_outlined), label: Text('Send all images'),),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(value: progress / 100),
+                      const SizedBox(width: 16),
+                      Text('$imageDeltaTime ms', style: const TextStyle(fontSize: 28, color: Colors.blue)),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -216,22 +268,22 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
 
   Future<void> sendImagePacket(String image) async{
     var start = DateTime.now().millisecondsSinceEpoch;
-    PacketSender.fromAsset(image).then((packetSender) async {
-      _sender = packetSender;
-      List<List<int>> packets = packetSender.getPackets();
-      int count = 0;
-      for (var packet in packets) {
-        Channel.get().sendData(packet);
-        count++;
-        setState(() {
-          progress = (count / packets.length * 100).toInt();
-        });
-        await Future.delayed(Duration(milliseconds: packetInterval));
-      }
+    var packetSender = await PacketSender.fromAsset(image);
+    _sender = packetSender;
+    List<List<int>> packets = packetSender.getPackets();
+    int count = 0;
+    for (var packet in packets) {
+      await Channel.get().sendData(packet);
+      count++;
       setState(() {
-        imageDeltaTime = DateTime.now().millisecondsSinceEpoch - start;
+        progress = (count / packets.length * 100).toInt();
       });
-
+      await Future.delayed(Duration(milliseconds: packetInterval));
+    }
+    setState(() {
+      imageDeltaTime = DateTime.now().millisecondsSinceEpoch - start;
     });
+
+
   }
 }
