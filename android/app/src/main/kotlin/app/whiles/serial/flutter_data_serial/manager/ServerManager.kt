@@ -90,7 +90,7 @@ class ServerManager {
 
     private fun handleIncomingBytes(bytes: ByteArray) {
 
-        sendData(bytes)
+
     }
 
     fun stopServer() {

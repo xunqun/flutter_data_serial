@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import '../model/packet.dart';
+import '../platform/channel.dart';
 
 class PacketSender {
 
@@ -35,7 +36,7 @@ class PacketSender {
 
   void _buildPackets() {
     int totalSize = fileBytes.length;
-    int totalChunks = (totalSize / maxPacketSize).ceil();
+    int totalChunks = (totalSize / packetSize).ceil();
     Uint8List postfixBytes = Uint8List.fromList(postfix.codeUnits);
     // 1. START Packet
     final startPayload = ByteData(12)
@@ -55,8 +56,8 @@ class PacketSender {
 
     // 2. DATA Packets
     for (int i = 0; i < totalChunks; i++) {
-      final start = i * maxPacketSize;
-      final end = (start + maxPacketSize).clamp(0, fileBytes.length);
+      final start = i * packetSize;
+      final end = (start + packetSize).clamp(0, fileBytes.length);
       final chunk = fileBytes.sublist(start, end);
       packets.add(_buildPacket(PacketType.data, i, chunk));
     }
@@ -94,6 +95,25 @@ class PacketSender {
     ];
   }
 
+  handleResendRequest(List<int> packet) {
+    // 處理重傳請求
+    final type = packet[2];
+    final index = (packet[3] << 8) | packet[4];
+
+    if (type == packetTypeToByte(PacketType.resendReq)) {
+      print('🔄 Resend request for index $index');
+      // 重新發送指定索引的封包
+      if (index < packets.length) {
+        final resendPacket = packets[index];
+        // 這裡可以添加發送邏輯，例如通過通道發送
+        Channel.get().sendData(resendPacket);
+      } else {
+        print('❌ Invalid resend request for index $index');
+      }
+    } else {
+      print('⚠️ Unknown resend request type: $type');
+    }
+  }
 
 
   int _calculateChecksum16(Uint8List data) {

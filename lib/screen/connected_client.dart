@@ -6,6 +6,7 @@ import 'package:flutter_data_serial/util/packet_sender.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../model/connect_state.dart';
+import '../model/packet.dart';
 import '../platform/channel.dart';
 
 class ConnectedClientScreen extends StatefulWidget {
@@ -18,7 +19,11 @@ class ConnectedClientScreen extends StatefulWidget {
 class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
   TextEditingController controller = TextEditingController();
   StreamSubscription? connStateSub;
+  StreamSubscription? _dataSub;
+  PacketSender? _sender;
   int progress = 0;
+  int imageDeltaTime = 0;
+  bool busy = false;
   List<String> imageList = [
     'assets/image/1.jpg',
     'assets/image/2.jpg',
@@ -42,13 +47,18 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
         Navigator.pop(context);
       }
     });
+    _dataSub = Channel.get().clientReceivedDataStream.listen((data) {
+      _sender?.handleResendRequest(data);
+    });
     super.initState();
   }
 
   @override
   void dispose() {
     connStateSub?.cancel();
+    _dataSub?.cancel();
     Channel.get().clientDisconnect();
+
     WakelockPlus.disable();
   }
 
@@ -120,6 +130,34 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                         return Text('');
                       }),
                 ),
+                const SizedBox(height: 20),
+                Text('Packet Size $packetSize bytes'),
+                Slider(
+                  value: packetSize.toDouble(),
+                  min: 128,
+                  max: 896,
+                  divisions: 8,
+                  label: 'Packet Size: $packetSize bytes',
+                  onChanged: (value) {
+                    setState(() {
+                      packetSize = value.toInt();
+                    });
+                  },
+                ),
+                const SizedBox(height: 20),
+                Text('Packet Interval $packetInterval ms'),
+                Slider(
+                  value: packetInterval.toDouble(),
+                  min: 10,
+                  max: 100,
+                  divisions: 9,
+                  label: 'Packet Interval: $packetInterval ms',
+                  onChanged: (value) {
+                    setState(() {
+                      packetInterval = value.toInt();
+                    });
+                  },
+                ),
                 // image button with asset image
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -129,21 +167,12 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                         IconButton(
                           onPressed: () {
                             // Handle sending image
-                            var start = DateTime.now().millisecondsSinceEpoch;
-                            PacketSender.fromAsset(image).then((filePacketHelper) async {
-                              List<List<int>> packets = filePacketHelper.getPackets();
-                              int count = 0;
-                              for (var packet in packets) {
-                                Channel.get().sendData(packet);
-                                count++;
-                                setState(() {
-                                  progress = (count / packets.length * 100).toInt();
-                                });
-                                await Future.delayed(Duration(milliseconds: 20));
-                              }
-                              var delta = DateTime.now().millisecondsSinceEpoch - start;
-                              debugPrint(
-                                  '✅ Image sent: $image, total packets: ${packets.length}, time taken: ${delta}ms');
+                            setState(() {
+                              busy = true;
+                            });
+                            sendImagePacket(image);
+                            setState(() {
+                              busy = false;
                             });
                           },
                           icon: Image.asset(
@@ -155,12 +184,54 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                     ],
                   ),
                 ),
-                CircularProgressIndicator(value: progress / 100)
+
+                IconButton( onPressed: busy ? null : () async {
+                  // send all images
+                  setState(() {
+                    busy = true;
+                  });
+                  for (var image in imageList) {
+                    await sendImagePacket(image);
+                    await Future.delayed(Duration(milliseconds: 700));
+                  }
+                  setState(() {
+                    busy = false;
+                  });
+                }, icon: Icon(Icons.local_shipping_outlined)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(value: progress / 100),
+                    const SizedBox(width: 16),
+                    Text('$imageDeltaTime ms'),
+                  ],
+                ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> sendImagePacket(String image) async{
+    var start = DateTime.now().millisecondsSinceEpoch;
+    PacketSender.fromAsset(image).then((packetSender) async {
+      _sender = packetSender;
+      List<List<int>> packets = packetSender.getPackets();
+      int count = 0;
+      for (var packet in packets) {
+        Channel.get().sendData(packet);
+        count++;
+        setState(() {
+          progress = (count / packets.length * 100).toInt();
+        });
+        await Future.delayed(Duration(milliseconds: packetInterval));
+      }
+      setState(() {
+        imageDeltaTime = DateTime.now().millisecondsSinceEpoch - start;
+      });
+
+    });
   }
 }
