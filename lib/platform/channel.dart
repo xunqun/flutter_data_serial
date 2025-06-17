@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_data_serial/model/connect_state.dart';
 
@@ -64,7 +65,7 @@ class Channel {
         case 'serverReceivedData':
           // Handle received data from server
           final Uint8List data = call.arguments;
-          // print("Server received data: $data");
+          debugPrint("Server received data:");
           _serverReceivedDataController.add(data);
           break;
         case 'clientReceivedData':

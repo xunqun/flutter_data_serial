@@ -3,6 +3,8 @@ package app.whiles.serial.flutter_data_serial.manager
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
+import android.util.Log
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import app.whiles.serial.flutter_data_serial.constant.Constants
 import app.whiles.serial.flutter_data_serial.constant.ServerConnectState
@@ -41,7 +43,7 @@ class ServerManager {
 
     // LiveData to observe the received data
     private val _receivedDataLive: MutableLiveData<ByteArray> = MutableLiveData()
-    val receivedDataLive: MutableLiveData<ByteArray>
+    val receivedDataLive: LiveData<ByteArray>
         get() = _receivedDataLive
 
 
@@ -70,8 +72,6 @@ class ServerManager {
                             buffer = ByteArray(1024)
                             bytes = inputStream.read(buffer)
                             if (bytes > 0) {
-
-
                                 handleIncomingBytes(buffer)
                             }
 

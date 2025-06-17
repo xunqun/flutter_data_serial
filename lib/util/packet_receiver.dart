@@ -30,9 +30,6 @@ class PacketReceiver {
     buffer = incompleteBuffer.sublist(headerIndex);
 
 
-
-    // if (buffer.length < headerLength + metaLength + checksumLength) return;
-
     // 驗證 header
     if (buffer[0] != header[0] || buffer[1] != header[1]) return;
 
@@ -45,12 +42,12 @@ class PacketReceiver {
     final packetEnd = dataEnd + checksumLength;
 
     buffer = buffer.sublist(0, packetEnd); // 確保只處理完整的封包
+    if (buffer.length < headerLength + metaLength + checksumLength) return;
     incompleteBuffer = Uint8List.fromList(
         buffer.sublist(packetEnd)); // 更新未完成的緩衝區
 
     if (buffer.length < dataEnd + 2) {
-      print(
-          '⚠️ Packet too short: expected at least ${dataEnd + 2} bytes, got ${buffer.length}');
+      print('⚠️ Packet too short: expected at least ${dataEnd + 2} bytes, got ${buffer.length}');
       return; // 檢查長度完整
     }
 
@@ -78,8 +75,7 @@ class PacketReceiver {
             .getUint32(0, Endian.big);
         postfix = String.fromCharCodes(data.sublist(8, 12));
         receivedChunks.clear();
-        print(
-            '✅ START received: totalSize=$totalSize, chunks=$totalChunks, postfix="$postfix"');
+        print('✅ START received: totalSize=$totalSize, chunks=$totalChunks, postfix="$postfix"');
       }
     } else if (type == 0x02) {
       // DATA

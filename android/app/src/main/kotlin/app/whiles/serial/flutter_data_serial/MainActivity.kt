@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.app.ActivityCompat
 import app.whiles.serial.flutter_data_serial.constant.ClientConnectState
@@ -68,16 +69,6 @@ class MainActivity : FlutterActivity() {
         bluetoothManager =
             this@MainActivity.getSystemService(BluetoothManager::class.java)
         bluetoothAdapter = bluetoothManager.adapter
-    }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    override fun onResume() {
-        super.onResume()
-        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
-            // Bluetooth is not supported or not enabled
-            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            startActivityForResult(enableBtIntent, 1)
-        }
 
         ClientManager.get().connStateLive.observe(this) {
             if (it != null) {
@@ -126,9 +117,30 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun onResume() {
+        super.onResume()
+        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
+            // Bluetooth is not supported or not enabled
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            startActivityForResult(enableBtIntent, 1)
+        }
+
+    }
+
     override fun onPause() {
         super.onPause()
         ClientManager.get().connStateLive.removeObservers(this)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        ClientManager.get().connStateLive.removeObservers(this)
+        ServerManager.get().serverConnectStateLive.removeObservers(this)
+        ClientManager.get().receivedDataLive.removeObservers(this)
+        ServerManager.get().receivedDataLive.removeObservers(this)
+
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
