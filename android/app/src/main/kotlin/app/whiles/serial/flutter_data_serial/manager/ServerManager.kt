@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
 import androidx.lifecycle.MutableLiveData
+import app.whiles.serial.flutter_data_serial.constant.Constants
 import app.whiles.serial.flutter_data_serial.constant.ServerConnectState
 import java.io.IOException
 import java.util.UUID
@@ -70,7 +71,7 @@ class ServerManager {
                             bytes = inputStream.read(buffer)
                             if (bytes > 0) {
 
-                                _receivedDataLive.postValue(buffer)
+
                                 handleIncomingBytes(buffer)
                             }
 
@@ -90,13 +91,13 @@ class ServerManager {
         serverThread?.start()
     }
 
+
     private fun handleIncomingBytes(bytes: ByteArray) {
-
-
+        _receivedDataLive.postValue(bytes)
     }
 
     fun stopServer() {
-        // Logic to stop the server
+//         Logic to stop the server
         _serverConnectStateLive.postValue(ServerConnectState.STOPPED)
         try {
             serverSocket?.close()

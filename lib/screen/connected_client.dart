@@ -196,6 +196,18 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                     ],
                   ),
                 ),
+                ElevatedButton.icon( onPressed: busy ? null : () async {
+                  // send all images
+                  setState(() {
+                    busy = true;
+                  });
+                  for (var image in imageList) {
+                    await sendImagePacket(image);
+                  }
+                  setState(() {
+                    busy = false;
+                  });
+                }, icon: Icon(Icons.numbers), label: Text('Send all images'),),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -221,19 +233,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                     ],
                   ),
                 ),
-                ElevatedButton.icon( onPressed: busy ? null : () async {
-                  // send all images
-                  setState(() {
-                    busy = true;
-                  });
-                  for (var image in imageList) {
-                    await sendImagePacket(image);
-                    // await Future.delayed(Duration(milliseconds: 1000));
-                  }
-                  setState(() {
-                    busy = false;
-                  });
-                }, icon: Icon(Icons.numbers), label: Text('Send all images'),),
+
                 ElevatedButton.icon( onPressed: busy ? null : () async {
                   // send all images
                   setState(() {
@@ -241,7 +241,6 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                   });
                   for (var image in naviList) {
                     await sendImagePacket(image);
-                    // await Future.delayed(Duration(milliseconds: 1000));
                   }
                   setState(() {
                     busy = false;

@@ -13,32 +13,52 @@ class PacketReceiver {
   final List<List<int>> resentPackets = [];
   bool isEndReceived = false;
   void Function(Uint8List imageData)? onComplete;
+  Uint8List incompleteBuffer = Uint8List(0);
 
   void handleIncomingPacket(
-      Uint8List packet, void Function(List<List<int>>) sendResendRequest) {
-    if (packet.length < headerLength + metaLength + checksumLength) return;
+      Uint8List buffer, void Function(List<List<int>>) sendResendRequest) {
+
+    incompleteBuffer = Uint8List.fromList(
+        incompleteBuffer.toList() + buffer.toList()); // 累積接收的資料
+    final headerIndex = _findHeaderIndex(incompleteBuffer);
+    if (headerIndex == -1) {
+      print('⚠️ No valid header found in the buffer');
+      return; // 沒有找到有效的 header
+    }
+
+    // 從找到的 header 開始處理
+    buffer = incompleteBuffer.sublist(headerIndex);
+
+
+
+    // if (buffer.length < headerLength + metaLength + checksumLength) return;
 
     // 驗證 header
-    if (packet[0] != header[0] || packet[1] != header[1]) return;
+    if (buffer[0] != header[0] || buffer[1] != header[1]) return;
 
     // 拆封
-    final type = packet[2];
-    final index = (packet[3] << 8) | packet[4];
-    final length = (packet[5] << 8) | packet[6];
+    final type = buffer[2];
+    final index = (buffer[3] << 8) | buffer[4];
+    final length = (buffer[5] << 8) | buffer[6];
     final dataStart = 7;
     final dataEnd = dataStart + length;
+    final packetEnd = dataEnd + checksumLength;
 
-    if (packet.length < dataEnd + 2) {
+    buffer = buffer.sublist(0, packetEnd); // 確保只處理完整的封包
+    incompleteBuffer = Uint8List.fromList(
+        buffer.sublist(packetEnd)); // 更新未完成的緩衝區
+
+    if (buffer.length < dataEnd + 2) {
       print(
-          '⚠️ Packet too short: expected at least ${dataEnd + 2} bytes, got ${packet.length}');
+          '⚠️ Packet too short: expected at least ${dataEnd + 2} bytes, got ${buffer.length}');
       return; // 檢查長度完整
     }
 
-    final data = packet.sublist(dataStart, dataEnd);
-    final receivedChecksum = (packet[dataEnd] << 8) | packet[dataEnd + 1];
+    final data = buffer.sublist(dataStart, dataEnd);
+    final receivedChecksum = (buffer[dataEnd] << 8) | buffer[dataEnd + 1];
 
     // 驗證 checksum
-    final crcInput = packet.sublist(2, dataEnd);
+    final crcInput = buffer.sublist(2, dataEnd);
     if (_calculateChecksum16(Uint8List.fromList(crcInput)) !=
         receivedChecksum) {
       print('❌ checksum error at index $index');
@@ -75,6 +95,15 @@ class PacketReceiver {
     } else {
       print('⚠️ Unknown packet type: $type at index $index');
     }
+  }
+
+  int _findHeaderIndex(Uint8List buffer) {
+    for (int i = 0; i < buffer.length - headerLength; i++) {
+      if (buffer[i] == header[0] && buffer[i + 1] == header[1]) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   void _checkCompletion(void Function(List<List<int>>) sendResendRequest) {
