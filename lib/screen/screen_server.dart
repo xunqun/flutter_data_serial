@@ -5,7 +5,7 @@ import 'package:flutter_data_serial/model/connect_state.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../platform/spp_helper.dart';
-import '../protocol/packet_receiver.dart';
+import '../protocol/packet_server.dart';
 
 class ServerScreen extends StatefulWidget {
   const ServerScreen({super.key});
@@ -16,7 +16,7 @@ class ServerScreen extends StatefulWidget {
 
 class _ServerScreenState extends State<ServerScreen> {
 
-  PacketReceiver dataReceiver = PacketReceiver();
+  PacketServer dataReceiver = PacketServer();
   Image? image;
 
   @override
@@ -25,10 +25,8 @@ class _ServerScreenState extends State<ServerScreen> {
     super.initState();
     dataReceiver.onComplete = (data) {
       setState(() {
-        image = null; // Reset image before loading new one
         image = Image.memory(data);
       });
-
     };
     SppHelper.get().serverReceivedDataStream.listen((data){
       dataReceiver.handleIncomingPacket(data, (packets) async {

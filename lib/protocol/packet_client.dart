@@ -7,6 +7,7 @@ import 'package:flutter_data_serial/platform/spp_helper.dart';
 import 'package:flutter_data_serial/protocol/factory_client_packet.dart';
 
 import '../model/connect_state.dart';
+import '../model/packet.dart';
 import 'BaseClient.dart';
 
 class PacketClient with BaseClient{
@@ -40,6 +41,14 @@ class PacketClient with BaseClient{
         print('Sending packet: ${packet.length} bytes');
       }
     });
+
+    // Listen for incoming data
+    SppHelper.get().clientReceivedDataStream.listen((data) {
+      // Handle incoming data
+      // You can process the data here or pass it to a handler
+      print('Received data: ${data.length} bytes');
+      handleReceivedData(data);
+    });
   }
 
   // Get the singleton instance
@@ -51,9 +60,11 @@ class PacketClient with BaseClient{
   // Send internal asset file
   @override
   Future<void> sendAsset(String assetPath) async{
+
     var id = genId();
     var factory = await ClientPacketFactory.fromAsset(id, assetPath);
     packets.addAll(factory.getPackets());
+    fileIdMap[id] = assetPath;
   }
 
   // Send file in the storage
@@ -62,6 +73,7 @@ class PacketClient with BaseClient{
     var id = genId();
     var factory = await ClientPacketFactory.fromFile(id, file);
     packets.addAll(factory.getPackets());
+    fileIdMap[id] = file.path;
   }
 
   @override
@@ -87,5 +99,35 @@ class PacketClient with BaseClient{
   @override
   Future<void> sendData(List<int> data) async{
     SppHelper.get().sendData(data);
+  }
+
+  void handleReceivedData(Uint8List data) async{
+    // 處理重傳請求
+    final type = data[2];
+    final fileId = (data[3] << 8) | data[4];
+    final index = (data[5] << 8) | data[6];
+
+    if (type == packetTypeToByte(PacketType.resendReq)) {
+      print('🔄 Resend request for index $index');
+      var file = fileIdMap[fileId]; // 儲存檔案ID與名稱的對應關係
+      if(file == null) return;
+      var isAsset = file.startsWith('assets/');
+      var factory = isAsset
+          ? await ClientPacketFactory.fromAsset(fileId, file)
+          : await ClientPacketFactory.fromFile(fileId, File(file));
+
+      // 重新發送指定索引的封包
+      var packets = factory.getPackets();
+      if (index < packets.length) {
+        final resendPacket = packets[index];
+        // 這裡可以添加發送邏輯，例如通過通道發送
+        SppHelper.get().sendData(resendPacket);
+      } else {
+        print('❌ Invalid resend request for index $index');
+      }
+
+    } else {
+      print('⚠️ Unknown resend request type: $type');
+    }
   }
 }

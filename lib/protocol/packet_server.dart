@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-class PacketReceiver {
+class PacketServer {
   static const List<int> header = [0xAA, 0x55];
   static const int headerLength = 2;
   static const int metaLength = 1 + 2 + 2; // type + index + length
@@ -42,6 +42,7 @@ class PacketReceiver {
     final dataEnd = dataStart + length;
     final packetEnd = dataEnd + checksumLength;
 
+
     buffer = buffer.sublist(0, packetEnd); // 確保只處理完整的封包
     if (buffer.length < headerLength + metaLength + checksumLength) return;
     incompleteBuffer = Uint8List.fromList(
@@ -60,7 +61,7 @@ class PacketReceiver {
     if (_calculateChecksum16(Uint8List.fromList(crcInput)) !=
         receivedChecksum) {
       print('❌ checksum error at index $index');
-      var resentPacket = buildResetPacket(index);
+      var resentPacket = buildResetPacket(fileId, index);
       resentPackets.add(resentPacket);
 
       sendResendRequest(resentPackets);
@@ -88,7 +89,7 @@ class PacketReceiver {
       // END
       isEndReceived = true;
       print('✅ END received');
-      _checkCompletion(sendResendRequest);
+      _checkCompletion(fileId, sendResendRequest);
     } else {
       print('⚠️ Unknown packet type: $type at index $index');
     }
@@ -103,7 +104,7 @@ class PacketReceiver {
     return -1;
   }
 
-  void _checkCompletion(void Function(List<List<int>>) sendResendRequest) {
+  void _checkCompletion(int fileId, void Function(List<List<int>>) sendResendRequest) {
     if (totalChunks == null || !isEndReceived) return;
 
     final missing = <int>[];
@@ -122,8 +123,10 @@ class PacketReceiver {
     } else {
       print('⚠️ 發現遺失封包: ${missing.length} 個 → $missing');
       for (final index in missing) {
-        resentPackets.add(buildResetPacket(index));
+        resentPackets.add(buildResetPacket(fileId, index));
       }
+
+      // if 發送重送請求
       sendResendRequest(resentPackets);
     }
   }
@@ -145,13 +148,14 @@ class PacketReceiver {
     return sum & 0xFFFF;
   }
 
-  List<int> buildResetPacket(int index) {
+  List<int> buildResetPacket(int id, int index) {
     var data = [(index >> 8) & 0xFF, index & 0xFF];
     final packet = <int>[
       header[0], header[1], // Header
       0x05, // Type: Resend Request
-      0x00, 0x00, // Index
-      0x00, 0x02, // Length: 2 bytes (for index)
+      (id >> 8) & 0xFF, (id & 0xFF), // File ID
+      (index >> 8) & 0xFF, (index & 0xFF), // Index
+      0x00, 0x04, // Length: 2 bytes (for index)
     ];
     packet.addAll(data);
     // 計算 checksum

@@ -86,6 +86,10 @@ flowchart TD
 
 ### START 封包格式（TYPE = 0x01）
 
+Client 通知 Server，開始傳送檔案資料
+
+
+
 ```
 結構：| HEADER[2] | TYPE[1] | FILE ID[2] | INDEX[2] | LENGTH[2] | DATA[14] | CHECKSUM[2] |
 範例：| 0xAA 0x55 | 0x01 | 0x0000 | 0x0008 | [DATA: 12 bytes] | CHECKSUM |
@@ -111,32 +115,44 @@ DATA 內容如下：
 
 ### DATA 封包格式 (TYPE = 0x02)
 
+Client 將檔案資料切分成數個chunks，依序使用DATA封包傳送每個chunk
+
 ```
 結構：| HEADER[2] | TYPE[1] | FILE ID[2] | INDEX[2] | LENGTH[2] | DATA[14] | CHECKSUM[2] |
 範例：| HEADER | 0x02 | 0x0000 | 0x0200 | [DATA: 512 bytes] | CHECKSUM |
 ```
 
-DATA 內容為切分成chunk的資料
+
 
 ### END 封包格式 (TYPE = 0x03)
+
+Client 通知Server，完成所有資料傳送
 
 ```
 結構：| HEADER[2] | TYPE[1] | FILE ID[2] | INDEX[2] | LENGTH[2] | DATA[14] | CHECKSUM[2] |
 範例：| HEADER | 0x03 | 0x0000 | 0x0000 | [DATA: 0 bytes] | CHECKSUM |
 ```
 
-### ACK 封包（TYPE = 0x04）
+
+
+### ~~ACK 封包（TYPE = 0x04）~~
+
+Server 通知Client 已收到某個chunk
 
 ```
 結構：| HEADER[2] | TYPE[1] | FILE ID[2] | INDEX[2] | LENGTH[2] | DATA[14] | CHECKSUM[2] |
 範例：| HEADER | 0x04 | 0x0000 | 0x0002 | 0x00 0x02 | CHECKSUM | // ACK index 2
 ```
 
+
+
 ### RESEND（TYPE = 0x05）
+
+Server 通知 Client 某個 Chunk 資料缺漏，請求重新傳送該chunk
 
 ```
 結構：| HEADER[2] | TYPE[1] | FILE ID[2] | INDEX[2] | LENGTH[2] | DATA[14] | CHECKSUM[2] |
-範例：| HEADER | 0x05 | 0x0000 | 0x0002 | 0x00 0x02 | CHECKSUM | //請求重送 index 2
+範例：| HEADER | 0x05 | 0x0000 | 0x0002 | 0x00 0x04 | CHECKSUM | //請求重送 index 2
 
 ```
 
