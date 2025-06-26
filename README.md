@@ -125,7 +125,7 @@ DATA 內容為切分成chunk的資料
 範例：| HEADER | 0x03 | 0x0000 | 0x0000 | [DATA: 0 bytes] | CHECKSUM |
 ```
 
-### ~~ACK 封包（TYPE = 0x04）~~
+### ACK 封包（TYPE = 0x04）
 
 ```
 結構：| HEADER[2] | TYPE[1] | FILE ID[2] | INDEX[2] | LENGTH[2] | DATA[14] | CHECKSUM[2] |
