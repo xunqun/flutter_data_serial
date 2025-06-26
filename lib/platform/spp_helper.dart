@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_data_serial/model/connect_state.dart';
 
-class Channel {
+class SppHelper {
   // Singleton pattern to ensure only one instance of Channel exists
-  static Channel? _instance;
-  static Channel get() {
+  static SppHelper? _instance;
+  static SppHelper get() {
     if (_instance == null) {
-      _instance = Channel();
+      _instance = SppHelper();
       _instance!._internal();
     }
     return _instance!;

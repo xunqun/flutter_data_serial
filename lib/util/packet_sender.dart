@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import '../model/packet.dart';
-import '../platform/channel.dart';
+import '../platform/spp_helper.dart';
 
 class PacketSender {
 
@@ -106,7 +106,7 @@ class PacketSender {
       if (index < packets.length) {
         final resendPacket = packets[index];
         // 這裡可以添加發送邏輯，例如通過通道發送
-        Channel.get().sendData(resendPacket);
+        SppHelper.get().sendData(resendPacket);
       } else {
         print('❌ Invalid resend request for index $index');
       }

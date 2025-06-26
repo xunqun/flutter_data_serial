@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../model/connect_state.dart';
-import '../platform/channel.dart';
+import '../platform/spp_helper.dart';
 import 'connected_client.dart';
 
 class ClientScreen extends StatefulWidget {
@@ -13,20 +13,20 @@ class ClientScreen extends StatefulWidget {
 }
 
 class _ClientScreenState extends State<ClientScreen> {
-  late Channel channel;
+  late SppHelper spp;
   bool isScanning = false;
 
   @override
   void initState() {
     super.initState();
-    channel = Channel.get();
-    channel.scanStateStream.listen((scanning) {
+    spp = SppHelper.get();
+    spp.scanStateStream.listen((scanning) {
       setState(() {
         isScanning = scanning;
       });
     });
 
-    channel.clientConnectStateStream.listen((connectState) {
+    spp.clientConnectStateStream.listen((connectState) {
       if (connectState == ClientConnectState.CONNECTED) {
         // Navigate to the connected client screen
         Navigator.push(context, MaterialPageRoute(builder: (context) => const ConnectedClientScreen()));
@@ -64,15 +64,15 @@ class _ClientScreenState extends State<ClientScreen> {
                 onPressed: () {
                   // Add your client-specific functionality here
                   if(isScanning) {
-                    channel.stopScan();
+                    spp.stopScan();
                   } else {
-                    channel.scan();
+                    spp.scan();
                   }
                 },
                 child: Text( isScanning ? 'stop' : 'Search for devices'),
               ),
               Expanded(child: StreamBuilder<List<Map<String, String?>>>(
-                stream: channel.scanResultsStream,
+                stream: spp.scanResultsStream,
                 initialData: [],
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
@@ -88,7 +88,7 @@ class _ClientScreenState extends State<ClientScreen> {
                       subtitle: Text(devices[index]['type'] ?? ''),
                       onTap: () {
                         // Handle device selection
-                        channel.connectAsClient(devices[index]['address'] ?? '');
+                        spp.connectAsClient(devices[index]['address'] ?? '');
                       },
                     );
                   }, itemCount: devices.length,);

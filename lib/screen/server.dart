@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_data_serial/model/connect_state.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import '../platform/channel.dart';
+import '../platform/spp_helper.dart';
 import '../util/packet_receiver.dart';
 
 class ServerScreen extends StatefulWidget {
@@ -30,7 +30,7 @@ class _ServerScreenState extends State<ServerScreen> {
       });
 
     };
-    Channel.get().serverReceivedDataStream.listen((data){
+    SppHelper.get().serverReceivedDataStream.listen((data){
       dataReceiver.handleIncomingPacket(data, (packets) async {
         // send RESENT packet to client\
         // for(int i = 0; i < packets.length; i++){
@@ -44,7 +44,7 @@ class _ServerScreenState extends State<ServerScreen> {
   @override
   void dispose() {
     WakelockPlus.disable();
-    Channel.get().serverStop();
+    SppHelper.get().serverStop();
     super.dispose();
   }
 
@@ -62,7 +62,7 @@ class _ServerScreenState extends State<ServerScreen> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
               StreamBuilder(
-                  stream: Channel.get().serverConnectStateStream,
+                  stream: SppHelper.get().serverConnectStateStream,
                   initialData: ServerConnectState.STOPPED,
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
@@ -79,7 +79,7 @@ class _ServerScreenState extends State<ServerScreen> {
                     }
                   }),
               StreamBuilder(
-                  stream: Channel.get().serverConnectStateStream,
+                  stream: SppHelper.get().serverConnectStateStream,
                   initialData: ServerConnectState.STOPPED,
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
@@ -89,7 +89,7 @@ class _ServerScreenState extends State<ServerScreen> {
                           onPressed: () {
                             // Add your server-specific functionality here
                             // For example, start listening for connections
-                            Channel.get().connectAsServer();
+                            SppHelper.get().connectAsServer();
                           },
                           child: const Text('Start Server'),
                         );
@@ -103,7 +103,7 @@ class _ServerScreenState extends State<ServerScreen> {
                           onPressed: () {
                             // Add your server-specific functionality here
                             // For example, stop the server
-                            Channel.get().serverStop();
+                            SppHelper.get().serverStop();
                           },
                           child: const Text('Stop Server'),
                         );
@@ -112,7 +112,7 @@ class _ServerScreenState extends State<ServerScreen> {
                     return const SizedBox.shrink();
                   }),
               StreamBuilder(
-                  stream: Channel.get().serverReceivedDataStream,
+                  stream: SppHelper.get().serverReceivedDataStream,
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
                       Uint8List? data = snapshot.data;

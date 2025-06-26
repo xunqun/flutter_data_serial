@@ -7,7 +7,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../model/connect_state.dart';
 import '../model/packet.dart';
-import '../platform/channel.dart';
+import '../platform/spp_helper.dart';
 
 class ConnectedClientScreen extends StatefulWidget {
   const ConnectedClientScreen({super.key});
@@ -53,13 +53,13 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
   void initState() {
     WakelockPlus.enable();
     // listen to connect state changes
-    connStateSub = Channel.get().clientConnectStateStream.listen((connectState) {
+    connStateSub = SppHelper.get().clientConnectStateStream.listen((connectState) {
       if (connectState == ClientConnectState.IDLE) {
         // Navigate back to the client screen when disconnected
         Navigator.pop(context);
       }
     });
-    _dataSub = Channel.get().clientReceivedDataStream.listen((data) {
+    _dataSub = SppHelper.get().clientReceivedDataStream.listen((data) {
       _sender?.handleResendRequest(data);
     });
     super.initState();
@@ -69,7 +69,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
   void dispose() {
     connStateSub?.cancel();
     _dataSub?.cancel();
-    Channel.get().clientDisconnect();
+    SppHelper.get().clientDisconnect();
 
     WakelockPlus.disable();
   }
@@ -129,7 +129,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                   height: 60,
                   width: double.infinity,
                   child: StreamBuilder<Uint8List>(
-                      stream: Channel.get().clientReceivedDataStream,
+                      stream: SppHelper.get().clientReceivedDataStream,
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           Uint8List? data = snapshot.data;
@@ -272,7 +272,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
     List<List<int>> packets = packetSender.getPackets();
     int count = 0;
     for (var packet in packets) {
-      await Channel.get().sendData(packet);
+      await SppHelper.get().sendData(packet);
       count++;
       setState(() {
         progress = (count / packets.length * 100).toInt();
