@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_data_serial/screen/client.dart';
-import 'package:flutter_data_serial/screen/server.dart';
+import 'package:flutter_data_serial/screen/screen_client.dart';
+import 'package:flutter_data_serial/screen/screen_server.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 

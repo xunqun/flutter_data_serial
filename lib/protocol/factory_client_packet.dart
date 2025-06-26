@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import '../model/packet.dart';
 import '../platform/spp_helper.dart';
 
-class PacketSender {
+class ClientPacketFactory {
 
 
   final Uint8List fileBytes;
@@ -13,24 +13,24 @@ class PacketSender {
   final List<List<int>> packets = [];
   final int fileId; // 目前未使用，預留
 
-  PacketSender._(this.fileId, this.fileBytes, this.postfix);
+  ClientPacketFactory._(this.fileId, this.fileBytes, this.postfix);
 
   /// 建立實例並切分封包
-  static Future<PacketSender> fromFile(int id, File file) async {
+  static Future<ClientPacketFactory> fromFile(int id, File file) async {
     final bytes = await file.readAsBytes();
     final postfix = file.path.split('.').last.toLowerCase();
-    final helper = PacketSender._(id, bytes, postfix);
+    final helper = ClientPacketFactory._(id, bytes, postfix);
     helper._buildPayload();
     return helper;
   }
 
   // final helper = await FilePacketHelper.fromAsset('assets/image/sample.jpg');
   // final packets = helper.getPackets();
-  static Future<PacketSender> fromAsset(int id, String assetPath) async {
+  static Future<ClientPacketFactory> fromAsset(int id, String assetPath) async {
     final bytes = await rootBundle.load(assetPath);
     final postfix = assetPath.split('.').last.toLowerCase();
     final data = bytes.buffer.asUint8List();
-    final helper = PacketSender._(id, data, postfix);
+    final helper = ClientPacketFactory._(id, data, postfix);
     helper._buildPayload();
     return helper;
   }

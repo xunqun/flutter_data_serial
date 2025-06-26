@@ -5,7 +5,7 @@ import 'package:flutter_data_serial/model/connect_state.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../platform/spp_helper.dart';
-import '../util/packet_receiver.dart';
+import '../protocol/packet_receiver.dart';
 
 class ServerScreen extends StatefulWidget {
   const ServerScreen({super.key});

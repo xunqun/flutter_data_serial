@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_data_serial/util/packet_sender.dart';
+import 'package:flutter_data_serial/protocol/factory_client_packet.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../model/connect_state.dart';
 import '../model/packet.dart';
 import '../platform/spp_helper.dart';
+import '../protocol/packet_client.dart';
 
 class ConnectedClientScreen extends StatefulWidget {
   const ConnectedClientScreen({super.key});
@@ -20,7 +21,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
   TextEditingController controller = TextEditingController();
   StreamSubscription? connStateSub;
   StreamSubscription? _dataSub;
-  PacketSender? _sender;
+  ClientPacketFactory? _sender;
   int progress = 0;
   int imageDeltaTime = 0;
   bool busy = false;
@@ -53,13 +54,13 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
   void initState() {
     WakelockPlus.enable();
     // listen to connect state changes
-    connStateSub = SppHelper.get().clientConnectStateStream.listen((connectState) {
+    connStateSub = PacketClient.get().connectStateStream.listen((connectState) {
       if (connectState == ClientConnectState.IDLE) {
         // Navigate back to the client screen when disconnected
         Navigator.pop(context);
       }
     });
-    _dataSub = SppHelper.get().clientReceivedDataStream.listen((data) {
+    _dataSub = PacketClient.get().dataStream.listen((data) {
       _sender?.handleResendRequest(data);
     });
     super.initState();
@@ -69,7 +70,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
   void dispose() {
     connStateSub?.cancel();
     _dataSub?.cancel();
-    SppHelper.get().clientDisconnect();
+    PacketClient.get().disconnect();
 
     WakelockPlus.disable();
   }
@@ -129,7 +130,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
                   height: 60,
                   width: double.infinity,
                   child: StreamBuilder<Uint8List>(
-                      stream: SppHelper.get().clientReceivedDataStream,
+                      stream: PacketClient.get().dataStream,
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           Uint8List? data = snapshot.data;
@@ -267,12 +268,12 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
 
   Future<void> sendImagePacket(String image) async{
     var start = DateTime.now().millisecondsSinceEpoch;
-    var packetSender = await PacketSender.fromAsset(0, image);
+    var packetSender = await ClientPacketFactory.fromAsset(0, image);
     _sender = packetSender;
     List<List<int>> packets = packetSender.getPackets();
     int count = 0;
     for (var packet in packets) {
-      await SppHelper.get().sendData(packet);
+      await PacketClient.get().sendData(packet);
       count++;
       setState(() {
         progress = (count / packets.length * 100).toInt();
