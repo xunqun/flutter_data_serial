@@ -11,30 +11,31 @@ class PacketSender {
   final Uint8List fileBytes;
   final String postfix;
   final List<List<int>> packets = [];
+  final int fileId; // 目前未使用，預留
 
-  PacketSender._(this.fileBytes, this.postfix);
+  PacketSender._(this.fileId, this.fileBytes, this.postfix);
 
   /// 建立實例並切分封包
-  static Future<PacketSender> fromFile(File file) async {
+  static Future<PacketSender> fromFile(int id, File file) async {
     final bytes = await file.readAsBytes();
     final postfix = file.path.split('.').last.toLowerCase();
-    final helper = PacketSender._(bytes, postfix);
-    helper._buildPackets();
+    final helper = PacketSender._(id, bytes, postfix);
+    helper._buildPayload();
     return helper;
   }
 
   // final helper = await FilePacketHelper.fromAsset('assets/image/sample.jpg');
   // final packets = helper.getPackets();
-  static Future<PacketSender> fromAsset(String assetPath) async {
+  static Future<PacketSender> fromAsset(int id, String assetPath) async {
     final bytes = await rootBundle.load(assetPath);
     final postfix = assetPath.split('.').last.toLowerCase();
     final data = bytes.buffer.asUint8List();
-    final helper = PacketSender._(data, postfix);
-    helper._buildPackets();
+    final helper = PacketSender._(id, data, postfix);
+    helper._buildPayload();
     return helper;
   }
 
-  void _buildPackets() {
+  void _buildPayload() {
     int totalSize = fileBytes.length;
     int totalChunks = (totalSize / packetSize).ceil();
     Uint8List postfixBytes = Uint8List.fromList(postfix.codeUnits);
@@ -72,6 +73,10 @@ class PacketSender {
     // TYPE
     final typeByte = packetTypeToByte(type);
     packetBody.add(typeByte);
+
+    // FILE ID (2 bytes)
+    final fileIdBytes = ByteData(2)..setUint16(0, fileId, Endian.big);
+    packetBody.addAll(fileIdBytes.buffer.asUint8List());
 
     // INDEX (2 bytes)
     final indexBytes = ByteData(2)..setUint16(0, index, Endian.big);

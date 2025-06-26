@@ -267,7 +267,7 @@ class _ConnectedClientScreenState extends State<ConnectedClientScreen> {
 
   Future<void> sendImagePacket(String image) async{
     var start = DateTime.now().millisecondsSinceEpoch;
-    var packetSender = await PacketSender.fromAsset(image);
+    var packetSender = await PacketSender.fromAsset(0, image);
     _sender = packetSender;
     List<List<int>> packets = packetSender.getPackets();
     int count = 0;

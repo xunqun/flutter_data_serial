@@ -35,9 +35,10 @@ class PacketReceiver {
 
     // 拆封
     final type = buffer[2];
-    final index = (buffer[3] << 8) | buffer[4];
-    final length = (buffer[5] << 8) | buffer[6];
-    final dataStart = 7;
+    final fileId = (buffer[3] << 8) | buffer[4];
+    final index = (buffer[5] << 8) | buffer[6];
+    final length = (buffer[7] << 8) | buffer[8];
+    final dataStart = 9;
     final dataEnd = dataStart + length;
     final packetEnd = dataEnd + checksumLength;
 
