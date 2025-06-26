@@ -8,6 +8,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import app.whiles.serial.flutter_data_serial.constant.Constants
 import app.whiles.serial.flutter_data_serial.constant.ServerConnectState
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.UUID
 import kotlin.getValue
@@ -64,17 +65,17 @@ class ServerManager {
                 // 連線成功後監聽資料
                 clientSocket?.let { socket ->
                     val inputStream = socket.inputStream
-                    var buffer = ByteArray(1024)
+                    val buffer = ByteArray(2048)
+                    val outputStream = ByteArrayOutputStream()
                     var bytes: Int
                     while (socket.isConnected) {
                         try {
-                            // clear the buffer before reading
-                            buffer = ByteArray(1024)
-                            bytes = inputStream.read(buffer)
+                            val bytes = inputStream.read(buffer)
                             if (bytes > 0) {
-                                handleIncomingBytes(buffer)
-                            }
 
+                                handleIncomingBytes(buffer)
+                                outputStream.reset() // 若已全部處理完
+                            }
                         } catch (e: IOException) {
                             e.printStackTrace()
                             break
