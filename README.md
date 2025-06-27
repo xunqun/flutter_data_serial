@@ -44,16 +44,17 @@
 ```mermaid
 flowchart TD
     Start([START])
-    Data0([DATA0])
-    Data1([DATA1])
-    Dots([...])
+    Datan([DATA - N])
+
     End([END])
     Ack([ACK 回應])
     Resend([RESEND_REQ（若有缺）])
 
-    Start --> Data0 --> Data1 --> Dots --> End
+    Start --> Datan
+    
+    Datan --> Ack --> Datan
     End --> Resend
-    Ack -.-> Start
+    Ack --> End
 ```
 
 
