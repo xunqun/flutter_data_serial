@@ -134,6 +134,7 @@ class NativeChannel : FlutterPlugin, ActivityAware {
         }
     }
 
+
     fun unregister(){
         activity?.unregisterReceiver(receiver)
         ClientManager.get().connStateLive.removeObservers(this.activity!! as LifecycleOwner)
